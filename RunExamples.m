@@ -10,7 +10,6 @@ vars = [x1;x2];
 
 f = [-1.0*x1 + 2*x2^2;
      -x1*x2 - 2*x2];
-o = 3;
 
 % Ueg1 = NormDecomp(f,vars)
 Ueg1 = Lyapunov(f,vars,2)
@@ -47,8 +46,9 @@ CheckNorm(f,Ueg3,vars)
 
 
 %% Example 4: Two-dimensional bistable system with curl dynamics
-% Works well, only if the curl component is significant, otherwise it
-% generates something non orthogonal.
+% Works well, only if the curl component is significant (~0.1), otherwise
+% it generates something non orthogonal. Using a 4th-order lower bound
+% polynomial helps.
 
 syms x1 x2
 vars = [x1;x2];
@@ -57,11 +57,11 @@ f = [-x1^3 + x1 - 2*x1^3*x2^4 + 2*x1*x2^4;
      -4*x2^3 - 2*x1^4*x2^3 + 4*x1^2*x2^3];
 fPerp = [4*x2^3 + 2*x1^4*x2^3 - 4*x1^2*x2^3;
          x1 - x1^3 - 2*x1^3*x2^4 + 2*x1*x2^4];
-f = f + 1.5*fPerp;
+f = f + 0.1*fPerp;
 
-Ueg4 = NormDecomp(f,vars,2)
+Ueg4 = NormDecomp(f,vars,2,4)
 % PlotLandscape(f,Ueg4,vars,[-1.5 1.5],[-1.5 1.5]);
-PlotVectors(f,Ueg4,vars,[-2 2],[-1.5 1.5]);
+% PlotVectors(f,Ueg4,vars,[-2 2],[-1.5 1.5]);
 CheckNorm(f,Ueg4,vars)
 
 

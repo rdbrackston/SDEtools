@@ -5,10 +5,15 @@ function [ U ] = NormDecomp( f, vars, varargin )
 %   decomposed into two orthogonal components: f = -grad(U) + g.
 
 % Use varargin to set the number of iterations
-if nargin > 2
+if nargin == 3
     iters = varargin{1};
+    p = 2;
+elseif nargin == 4
+    iters = varargin{1};
+    p = varargin{2};
 else
     iters = 1;
+    p = 2;
 end
 
 syms epsl alph
@@ -44,7 +49,6 @@ end
 % =============================================
 % Constraint 1 : positive definiteness of V
 % V(x) - epsilon(x1^2 + x2^2 + ... xn^2) >= 0
-p = 2;
 prog = sosineq(prog,V-epsl*sum(vars.^p));
 
 % Constraint 2: matrix inequality imposes
