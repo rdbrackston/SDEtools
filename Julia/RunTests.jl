@@ -1,7 +1,10 @@
 # Run a series of tests of the NormDecomp function
 
-using SumOfSquares, JuMP, PolyJuMP, SCS, DynamicPolynomials, MultivariatePolynomials
+using SumOfSquares, JuMP, PolyJuMP, DynamicPolynomials, MultivariatePolynomials
+# using SCS
+using Mosek
 include("normal-SoS.jl")
+using normalSoS
 
 
 ## Example 1: Quadratic system from Zhou et al (2012) - Y
@@ -9,7 +12,7 @@ include("normal-SoS.jl")
 @polyvar x[1:2]
 f1 = [-x[1] + 2.0x[2]^2;
      -x[1]*x[2] - 2.0x[2]];
-@time Ueg1 = normalSoS.NormDecomp(f1,x)
+@time Ueg1 = normalSoS.NormDecomp(f1,x, MosekSolver())
 # PlotLandscape(f,Ueg1,vars,[-3 3],[-3 3]);
 # PlotVectors(f,Ueg1,vars,[-3 3],[-3 3]);
 # CheckNorm(f,Ueg1,vars)

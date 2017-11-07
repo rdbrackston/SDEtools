@@ -4,14 +4,14 @@ using SumOfSquares, JuMP, PolyJuMP, SCS, DynamicPolynomials, MultivariatePolynom
 
 export NormDecomp
 
-function NormDecomp(f, x)
+function NormDecomp(f, x, SDPsolver=SCSSolver())
 
     nIters = 1;
     o = 2;
 
     n = length(f);
 
-    m1 = SOSModel(solver=SCSSolver());
+    m1 = SOSModel(solver=SDPsolver);
     @variable m1 ϵ
 
     # The Lyapunov function V(x):
@@ -37,7 +37,7 @@ function NormDecomp(f, x)
 
         U = getvalue(V);
 
-        m2 = SOSModel(solver=SCSSolver());
+        m2 = SOSModel(solver=SDPsolver);
         @variable m2 ϵ
         @variable m2 α
         @polyvariable m2 V Z
