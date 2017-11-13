@@ -148,7 +148,7 @@ function MAP(f::Function, g::Function, x₀::Vector, xₑ::Vector, τ::Real)
 
     store = zeros(φ₀);
     # dS!(store,φ) = ForwardDiff.gradient!(store, S, φ);
-    dS_opt! = (store, φ)->dS!(store,φ, x₀,xₑ,N,n,dτ);
+    dS_opt! = (store,φ)->dS!(store,φ, x₀,xₑ,N,n,dτ);
 
     return Optim.optimize(S_opt, dS_opt!, φ₀, LBFGS());
     # return Optim.optimize(S, φ₀, LBFGS());
