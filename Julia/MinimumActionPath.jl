@@ -1,24 +1,7 @@
+module MAP
+
 using Optim
 using ForwardDiff
-# using ReverseDiff
-using Gadfly
-
-# Specify the SDE
-
-α = 0.5;
-λ = 0.5α;
-β = 0.0;
-σ = 0.2;
-
-# f(x) = [2α*x[1]-4λ*x[1]^3-β; -4λ*x[2]^3];
-f(x::Vector) = [2α*x[1]-4λ*x[1]^3-β];
-# g(x) = σ*[1.0; 1.0];
-g(x::Vector) = [σ];
-
-Tspan = 100.0;  # Time span
-x₀ = [-1.0];  # Start point (row vector)
-xₑ = [1.0];  # End point (row vector)
-# xᵢ = [0.0, 0.0];  # Intermediate point
 
 # Function to generate the initial path
 function GenPath(X₀::AbstractArray, Xₑ::AbstractArray, N::Int64)
@@ -28,7 +11,7 @@ function GenPath(X₀::AbstractArray, Xₑ::AbstractArray, N::Int64)
     # Calculate the discretised piecewise path between the points
     φ₀ = zeros(Float64, N,n);
     for ii=1:n
-        φ₀[:,ii] = collect(linspace(x₀[ii],xₑ[ii],N));
+        φ₀[:,ii] = collect(linspace(X₀[ii],Xₑ[ii],N));
     end
     if n==1
         φ₀ = vec(φ₀[2:end-1,:]);    # Subset of modifiable points as column vector
@@ -41,11 +24,9 @@ end
 
 # Define the action functional
 function S(φ::AbstractArray,
-           X₀::AbstractArray,
-           Xₑ::AbstractArray,
-           N::Int64,
-           n::Int64,
-           dt::Float64)
+           f::Function, g::Function,
+           X₀::AbstractArray, Xₑ::AbstractArray,
+           N::Int64, n::Int64, dt::Float64)
 
     # V = hcat(x₀,φ,xₑ);
     V = vcat(X₀,φ,Xₑ);
@@ -53,7 +34,7 @@ function S(φ::AbstractArray,
     action = 0.0;
     for iT = 1:N-1
 
-        xT = 0.5*(V[iT+1,:]-V[iT,:]);
+        xT = 0.5*(V[iT+1,:]+V[iT,:]);
         fT = f(xT);
         DT = g(xT).^2;
 
@@ -67,18 +48,15 @@ function S(φ::AbstractArray,
 end
 
 # Analytical gradient of action functional
-function dS!(store::AbstractArray,
-             φ::AbstractArray,
-             X₀::AbstractArray,
-             Xₑ::AbstractArray,
-             N::Int64,
-             n::Int64,
-             dt::Float64)
+function dS!(store::AbstractArray, φ::AbstractArray,
+             f::Function, g::Function,
+             X₀::AbstractArray, Xₑ::AbstractArray,
+             N::Int64, n::Int64, dt::Float64)
 
-    V = vcat(x₀,φ,xₑ);    # Complete vector of points
+    V = vcat(X₀,φ,Xₑ);    # Complete vector of points
 
     # Evaluate for first segment
-    xT = 0.5*(V[2,:]-V[1,:]);
+    xT = 0.5*(V[2,:]+V[1,:]);
     fT_prev = f(xT);
     DT_prev = g(xT).^2;
     dφ_prev = (V[2,:]-V[1,:])/dt;
@@ -102,7 +80,7 @@ function dS!(store::AbstractArray,
     for ik = 1:N-2
 
         # Evaluate the quantities after this point
-        xT = 0.5*(V[ik+2,:]-V[ik+1,:]);
+        xT = 0.5*(V[ik+2,:]+V[ik+1,:]);
         fT_next = f(xT);
         DT_next = g(xT).^2;
         dφ_next = (V[ik+2,:]-V[ik+1,:])/dt;
@@ -135,28 +113,89 @@ function dS!(store::AbstractArray,
     end
 end
 
-function MAP(f::Function, g::Function, x₀::Vector, xₑ::Vector, τ::Real)
+function MAP_Opt(f::Function, g::Function,
+                 x₀::AbstractArray, xₑ::AbstractArray,
+                 τ::Real, N::Signed)
 
-    N = 101;    # Number of discrete points including start and end
     dτ = τ/N;
     n = length(x₀);       # Number of state dimensions
 
     φ₀ = GenPath(x₀,xₑ,N);
 
     # Define the anonymous action function
-    S_opt = φ->S(φ, x₀,xₑ,N,n,dτ);
+    S_opt = φ->S(φ, f,g,x₀,xₑ,N,n,dτ);
 
     store = zeros(φ₀);
     # dS!(store,φ) = ForwardDiff.gradient!(store, S, φ);
-    dS_opt! = (store,φ)->dS!(store,φ, x₀,xₑ,N,n,dτ);
+    dS_opt! = (store,φ)->dS!(store,φ, f,g,x₀,xₑ,N,n,dτ);
 
     return Optim.optimize(S_opt, dS_opt!, φ₀, LBFGS());
     # return Optim.optimize(S, φ₀, LBFGS());
 end
 
-# dS!(store,φ) = ReverseDiff.gradient!(store, S, φ);
+function T_Opt!(pointVec::AbstractArray, valueVec::AbstractArray,
+               f::Function, g::Function,
+               x₀::AbstractArray, xₑ::AbstractArray,
+               N::Signed)
+    # Function to optimise over the time duration using a golden section line
+    # search algorithm
 
-# Use Optim to optimise over path φ
-resObj = MAP(f, g, x₀, xₑ, Tspan);
-res = Optim.minimizer(resObj)
-val = Optim.minimum(resObj)
+    nIter = 10;
+    ϕ = 0.5(1+sqrt(5)); # Golden ratio
+    ii = 0;
+
+    # Define the recursive golden section algorithm
+    function GoldSectSearch(a::Float64,b::Float64,c::Float64,
+                            fa::Float64,fb::Float64,fc::Float64, tol::Float64)
+
+        if (c-b)>(b-a)
+            # d = b + (2-ϕ)*(c-b);
+            d = (c+ϕ*b)/(1+ϕ);
+        else
+            d = (b+ϕ*a)/(1+ϕ);
+        end
+
+        if ii==nIter
+            return (b, fb)
+        end
+        ii += 1;
+        print(ii, "\n")
+
+        fd = Optim.minimum(MAP_Opt(f,g,x₀,xₑ,d,N));
+        print(d, "\n")
+        push!(pointVec,d);
+        print(fd, "\n")
+        push!(valueVec,fd);
+
+        if d>b
+            if fd>fb
+                return GoldSectSearch(a,b,d, fa,fb,fd, tol)
+            else
+                return GoldSectSearch(b,d,c, fb,fd,fc, tol)
+            end
+        else
+            if fd>fb
+                return GoldSectSearch(d,b,c, fd,fb,fc, tol)
+            else
+                return GoldSectSearch(a,d,b, fa,fd,fb, tol)
+            end
+        end
+    end
+
+    print("Evaluating initial triplet...", "\n")
+    τL = 5.0;    τU = 100.0; # Initial bounds
+    τM = (τU+ϕ*τL)/(1+ϕ);    # Third point in starting triple
+    fL = Optim.minimum(MAP_Opt(f,g,x₀,xₑ,τL,N));
+    print("Lower bound:", fL, "\n")
+    fM = Optim.minimum(MAP_Opt(f,g,x₀,xₑ,τM,N));
+    print("Interior point:", fM, "\n")
+    fU = Optim.minimum(MAP_Opt(f,g,x₀,xₑ,τU,N));
+    print("Upper bound:", fU, "\n")
+    push!(pointVec,τL); push!(pointVec,τM); push!(pointVec,τU);
+    push!(valueVec,fL); push!(valueVec,fM); push!(valueVec,fU);
+
+    return GoldSectSearch(τL,τM,τU, fL,fM,fU, 0.0)
+
+end
+
+end
