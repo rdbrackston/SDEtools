@@ -115,12 +115,16 @@ end
 
 function MAP_Opt(f::Function, g::Function,
                  x₀::AbstractArray, xₑ::AbstractArray,
-                 τ::Real, N::Signed)
+                 τ::Real, N::Signed,
+                 φ₀::Union{AbstractArray,Symbol}=:auto)
 
     dτ = τ/N;
     n = length(x₀);       # Number of state dimensions
 
-    φ₀ = GenPath(x₀,xₑ,N);
+    # Evaluate the initial path if not given
+    if φ₀==:auto
+        φ₀ = GenPath(x₀,xₑ,N);
+    end
 
     # Define the anonymous action function
     S_opt = φ->S(φ, f,g,x₀,xₑ,N,n,dτ);
@@ -136,7 +140,7 @@ end
 function T_Opt!(pointVec::AbstractArray, valueVec::AbstractArray,
                f::Function, g::Function,
                x₀::AbstractArray, xₑ::AbstractArray,
-               N::Signed)
+               TBounds::NTuple{2,Real}, nPoints::Signed)
     # Function to optimise over the time duration using a golden section line
     # search algorithm
 
@@ -146,7 +150,9 @@ function T_Opt!(pointVec::AbstractArray, valueVec::AbstractArray,
 
     # Define the recursive golden section algorithm
     function GoldSectSearch(a::Float64,b::Float64,c::Float64,
-                            fa::Float64,fb::Float64,fc::Float64, tol::Float64)
+                            Sa::Float64,Sb::Float64,Sc::Float64,
+                            φa::AbstractArray, φb::AbstractArray,
+                            tol::Float64)
 
         if (c-b)>(b-a)
             # d = b + (2-ϕ)*(c-b);
@@ -156,45 +162,61 @@ function T_Opt!(pointVec::AbstractArray, valueVec::AbstractArray,
         end
 
         if ii==nIter
-            return (b, fb)
+            # Return the optimisasion result half way through the interval.
+            return MAP_Opt(f,g,x₀,xₑ,0.5(a+c),nPoints,φa)
         end
         ii += 1;
-        print(ii, "\n")
 
-        fd = Optim.minimum(MAP_Opt(f,g,x₀,xₑ,d,N));
-        print(d, "\n")
+        # Evaluate the optimisation at the new point, using previous result at
+        # closest existing point as the initial guess
+        if (c-b)>(b-a)
+            tmp = MAP_Opt(f,g,x₀,xₑ,d,nPoints,φb);
+            Sd = Optim.minimum(tmp);
+            φd = Optim.minimizer(tmp);
+        else
+            tmp = MAP_Opt(f,g,x₀,xₑ,d,nPoints,φa);
+            Sd = Optim.minimum(tmp);
+            φd = Optim.minimizer(tmp);
+        end
         push!(pointVec,d);
-        print(fd, "\n")
-        push!(valueVec,fd);
+        push!(valueVec,Sd);
+        println(@sprintf("New point at T=%.2f gives S=%.2f",d,Sd));
 
         if d>b
-            if fd>fb
-                return GoldSectSearch(a,b,d, fa,fb,fd, tol)
+            if Sd>Sb
+                return GoldSectSearch(a,b,d, Sa,Sb,Sd, φa,φb, tol)
             else
-                return GoldSectSearch(b,d,c, fb,fd,fc, tol)
+                return GoldSectSearch(b,d,c, Sb,Sd,Sc, φb,φd, tol)
             end
         else
-            if fd>fb
-                return GoldSectSearch(d,b,c, fd,fb,fc, tol)
+            if Sd>Sb
+                return GoldSectSearch(d,b,c, Sd,Sb,Sc, φd,φb, tol)
             else
-                return GoldSectSearch(a,d,b, fa,fd,fb, tol)
+                return GoldSectSearch(a,d,b, Sa,Sd,Sb, φa,φd, tol)
             end
         end
     end
 
-    print("Evaluating initial triplet...", "\n")
-    τL = 5.0;    τU = 100.0; # Initial bounds
+    println("Evaluating initial triplet...")
+    τL = TBounds[1];    τU = TBounds[2]; # Initial bounds
     τM = (τU+ϕ*τL)/(1+ϕ);    # Third point in starting triple
-    fL = Optim.minimum(MAP_Opt(f,g,x₀,xₑ,τL,N));
-    print("Lower bound:", fL, "\n")
-    fM = Optim.minimum(MAP_Opt(f,g,x₀,xₑ,τM,N));
-    print("Interior point:", fM, "\n")
-    fU = Optim.minimum(MAP_Opt(f,g,x₀,xₑ,τU,N));
-    print("Upper bound:", fU, "\n")
+
+    tmp = MAP_Opt(f,g,x₀,xₑ,τL,nPoints);
+    fL = Optim.minimum(tmp);
+    φL = Optim.minimizer(tmp);
+    println(@sprintf("Lower bound of T=%.2f gives S=%.2f",τL,fL));
+
+    tmp = MAP_Opt(f,g,x₀,xₑ,τM,nPoints);
+    fM = Optim.minimum(tmp);
+    φM = Optim.minimizer(tmp);
+    println(@sprintf("Interior point of T=%.2f gives S=%.2f",τM,fM));
+
+    fU = Optim.minimum(MAP_Opt(f,g,x₀,xₑ,τU,nPoints));
+    println(@sprintf("Upper bound of T=%.2f gives S=%.2f",τU,fU));
     push!(pointVec,τL); push!(pointVec,τM); push!(pointVec,τU);
     push!(valueVec,fL); push!(valueVec,fM); push!(valueVec,fU);
 
-    return GoldSectSearch(τL,τM,τU, fL,fM,fU, 0.0)
+    return GoldSectSearch(τL,τM,τU, fL,fM,fU, φL,φM, 0.0)
 
 end
 

@@ -1,6 +1,4 @@
 using Optim
-using ForwardDiff
-# using ReverseDiff
 using Gadfly
 
 include("MinimumActionPath.jl")
@@ -8,8 +6,8 @@ using MAP
 
 α = 0.5;
 λ = 0.5α;
-β = 0.0;
-σ = 0.2;
+β = -0.05;
+σ = 0.4;
 
 n=2;
 if n==1
@@ -27,8 +25,8 @@ else
     print("Invalid n chosen.")
 end
 
-Tspan = 18.0;  # Time span
-N = 101;
+Tspan = 31.0;  # Time span
+N = 200;
 # xᵢ = [0.0, 0.0];  # Intermediate point
 
 # Examine the path
@@ -44,12 +42,16 @@ draw(SVG("InitialGrad.svg"),plt);
 # Use Optim to optimise over path φ
 resObj = MAP.MAP_Opt(f, g, x₀, xₑ, Tspan,N);
 res = Optim.minimizer(resObj)
-plt = plot(x=res[:,1],y=res[:,2], Geom.point)
-draw(SVG("FinalPath.svg"),plt);
 
 val = Optim.minimum(resObj)
 
 Tvec = [];    Svec = [];
-MAP.T_Opt!(Tvec,Svec, f,g,x₀,xₑ,N)
-plt = plot(x=Tvec,y=Svec, Geom.point, Scale.y_log)
+resObj = MAP.T_Opt!(Tvec,Svec, f,g,x₀,xₑ,(20.,40.),N)
+res = Optim.minimizer(resObj)
+plt = plot(x=Tvec,y=Svec, Geom.point)
 draw(SVG("TimeOptimisation.svg"),plt);
+
+plt = plot(x=res[:,1],y=res[:,2], Geom.point,
+           Scale.x_continuous(minvalue=-2,maxvalue=2),
+           Scale.y_continuous(minvalue=-2,maxvalue=2))
+draw(SVG("FinalPath.svg"),plt);
