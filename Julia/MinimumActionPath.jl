@@ -133,8 +133,15 @@ function MAP_Opt(f::Function, g::Function,
     # dS!(store,φ) = ForwardDiff.gradient!(store, S, φ);
     dS_opt! = (store,φ)->dS!(store,φ, f,g,x₀,xₑ,N,n,dτ);
 
-    return Optim.optimize(S_opt, dS_opt!, φ₀, LBFGS());
-    # return Optim.optimize(S, φ₀, LBFGS());
+    # Perform the optimisation and print some info
+    OptStruct = Optim.optimize(S_opt, dS_opt!, φ₀, LBFGS());
+    println(@sprintf("Optimisation for T=%.2f gives S=%.2f",τ,Optim.minimum(OptStruct)));
+    if Optim.converged(OptStruct)
+        println("Optimisation is converged.")
+    else
+        println("Optimisation is not converged.")
+    end
+    return OptStruct
 end
 
 function T_Opt!(pointVec::AbstractArray, valueVec::AbstractArray,
@@ -144,7 +151,7 @@ function T_Opt!(pointVec::AbstractArray, valueVec::AbstractArray,
     # Function to optimise over the time duration using a golden section line
     # search algorithm
 
-    nIter = 10;
+    nIter = 6;
     ϕ = 0.5(1+sqrt(5)); # Golden ratio
     ii = 0;
 
@@ -171,16 +178,18 @@ function T_Opt!(pointVec::AbstractArray, valueVec::AbstractArray,
         # closest existing point as the initial guess
         if (c-b)>(b-a)
             tmp = MAP_Opt(f,g,x₀,xₑ,d,nPoints,φb);
-            Sd = Optim.minimum(tmp);
-            φd = Optim.minimizer(tmp);
         else
             tmp = MAP_Opt(f,g,x₀,xₑ,d,nPoints,φa);
-            Sd = Optim.minimum(tmp);
+        end
+        φd = Optim.minimizer(tmp);
+        if Optim.iteration_limit_reached(tmp) # Re-run if not converged
+            tmp = MAP_Opt(f,g,x₀,xₑ,d,nPoints,φd);
             φd = Optim.minimizer(tmp);
         end
+        Sd = Optim.minimum(tmp);
+
         push!(pointVec,d);
         push!(valueVec,Sd);
-        println(@sprintf("New point at T=%.2f gives S=%.2f",d,Sd));
 
         if d>b
             if Sd>Sb
@@ -202,17 +211,14 @@ function T_Opt!(pointVec::AbstractArray, valueVec::AbstractArray,
     τM = (τU+ϕ*τL)/(1+ϕ);    # Third point in starting triple
 
     tmp = MAP_Opt(f,g,x₀,xₑ,τL,nPoints);
-    fL = Optim.minimum(tmp);
     φL = Optim.minimizer(tmp);
-    println(@sprintf("Lower bound of T=%.2f gives S=%.2f",τL,fL));
+    fL = Optim.minimum(tmp);
 
     tmp = MAP_Opt(f,g,x₀,xₑ,τM,nPoints);
     fM = Optim.minimum(tmp);
     φM = Optim.minimizer(tmp);
-    println(@sprintf("Interior point of T=%.2f gives S=%.2f",τM,fM));
 
     fU = Optim.minimum(MAP_Opt(f,g,x₀,xₑ,τU,nPoints));
-    println(@sprintf("Upper bound of T=%.2f gives S=%.2f",τU,fU));
     push!(pointVec,τL); push!(pointVec,τM); push!(pointVec,τU);
     push!(valueVec,fL); push!(valueVec,fM); push!(valueVec,fU);
 

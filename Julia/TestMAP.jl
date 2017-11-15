@@ -26,7 +26,7 @@ else
 end
 
 Tspan = 31.0;  # Time span
-N = 200;
+N = 500;
 # xᵢ = [0.0, 0.0];  # Intermediate point
 
 # Examine the path
@@ -46,7 +46,7 @@ res = Optim.minimizer(resObj)
 val = Optim.minimum(resObj)
 
 Tvec = [];    Svec = [];
-resObj = MAP.T_Opt!(Tvec,Svec, f,g,x₀,xₑ,(20.,40.),N)
+resObj = MAP.T_Opt!(Tvec,Svec, f,g,x₀,xₑ,(20.,60.),N)
 res = Optim.minimizer(resObj)
 plt = plot(x=Tvec,y=Svec, Geom.point)
 draw(SVG("TimeOptimisation.svg"),plt);
