@@ -3,8 +3,7 @@ using Optim
 using DifferentialEquations
 using Gadfly
 
-include("MinimumActionPath.jl")
-using MAP
+include("MinimumActionPath.jl");    using MAP
 
 # Specify the equations of the model
 (k0, c0, c1, c2, c3, c4, e0, e1, e2, a0, a1, a2, b0, b1, b2, b3, δ) = [0.005, 0.01, 0.4, 1.0, 0.1, 0.00135, 0.01, 1.0, 1.0, 0.01, 1.0, 5.0, 0.005, 0.005, 1.0, 1.0, 0.01];
@@ -30,9 +29,16 @@ g(X::Vector) = [sqrt(r1(0,X) + r2(0,X)),
                 sqrt(r3(0,X) + r4(0,X)),
                 sqrt(r5(0,X) + r6(0,X)),
                 sqrt(r7(0,X) + r8(0,X))];
+# g(X::Vector) = [sqrt(abs(r1(0,X) + r2(0,X))),
+#                 sqrt(abs(r3(0,X) + r4(0,X))),
+#                 sqrt(abs(r5(0,X) + r6(0,X))),
+#                 sqrt(abs(r7(0,X) + r8(0,X)))];
 
-cond_ss = [83.0,97.0,76.0,1.0]; # Stem cell state
+Tspan = 500.0;
+N = 150;
+
 I3 = 2.0;
+cond_ss = [83.0,97.0,76.0,1.0]; # Stem cell state
 ss_problem = DifferentialEquations.SteadyStateProblem(
                     (t, X) -> [r1(t, X) - r2(t, X),
                               r3(t, X) - r4(t, X),
@@ -40,3 +46,27 @@ ss_problem = DifferentialEquations.SteadyStateProblem(
                               r7(t, X) - r8(t, X)],
                               cond_ss)
 sol = DifferentialEquations.solve(ss_problem);
+x₀ = [sol.u[1] sol.u[2] sol.u[3] sol.u[4]];
+
+cond_ds = [0.0,0.0,0.0,98.0]; # Stem cell state
+ss_problem = DifferentialEquations.SteadyStateProblem(
+                    (t, X) -> [r1(t, X) - r2(t, X),
+                              r3(t, X) - r4(t, X),
+                              r5(t, X) - r6(t, X),
+                              r7(t, X) - r8(t, X)],
+                              cond_ds)
+sol = DifferentialEquations.solve(ss_problem);
+xₑ = [sol.u[1] sol.u[2] sol.u[3] sol.u[4]];
+
+# Use Optim to optimise over path φ
+resObj = MAP.MAP_Opt(f, g, x₀, xₑ, Tspan,N);
+res = Optim.minimizer(resObj)
+
+Tvec = [];    Svec = [];
+resObj = MAP.T_Opt!(Tvec,Svec, f,g,x₀,xₑ,(100.,2000.),N)
+res = Optim.minimizer(resObj)
+plt = plot(x=Tvec,y=Svec, Geom.point)
+plt = plot(x=res[:,4],y=res[:,1], Geom.point)
+
+resObj = MAP.MAP_Opt(f, g, x₀, xₑ, 1935.,N, res);
+res = Optim.minimizer(resObj)
