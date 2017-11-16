@@ -1,8 +1,7 @@
 using Optim
 using Gadfly
 
-include("MinimumActionPath.jl")
-using MAP
+include("MinimumActionPath.jl");    using MAP
 
 α = 0.5;
 λ = 0.5α;
@@ -42,8 +41,6 @@ draw(SVG("InitialGrad.svg"),plt);
 # Use Optim to optimise over path φ
 resObj = MAP.MAP_Opt(f, g, x₀, xₑ, Tspan,N);
 res = Optim.minimizer(resObj)
-
-val = Optim.minimum(resObj)
 
 Tvec = [];    Svec = [];
 resObj = MAP.T_Opt!(Tvec,Svec, f,g,x₀,xₑ,(20.,60.),N)
