@@ -116,7 +116,7 @@ end
 function MAP_Opt(f::Function, g::Function,
                  x₀::AbstractArray, xₑ::AbstractArray,
                  τ::Real, N::Signed,
-                 φ₀::Union{AbstractArray,Symbol}=:auto, reRuns::Signed=1)
+                 φ₀::Union{AbstractArray,Symbol}=:auto, reRuns::Signed=2)
 
     dτ = τ/N;
     n = length(x₀);       # Number of state dimensions
@@ -138,7 +138,7 @@ function MAP_Opt(f::Function, g::Function,
     println(@sprintf("Optimisation for T=%.2f gives S=%.2f",τ,Optim.minimum(OptStruct)));
 
     ii = 0;
-    while !Optim.converged(OptStruct) && ii<reRuns+1
+    while !Optim.converged(OptStruct) && ii<reRuns
         println("Optimisation is not converged, rerunning...")
         φ₀ = Optim.minimizer(OptStruct)
         OptStruct = Optim.optimize(S_opt, dS_opt!, φ₀, LBFGS());
@@ -180,7 +180,10 @@ function T_Opt!(pointVec::AbstractArray, valueVec::AbstractArray,
 
         if ii==nIter
             # Return the optimisasion result half way through the interval.
-            return MAP_Opt(f,g,x₀,xₑ,0.5(a+c),nPoints,φa)
+            OptStruct = MAP_Opt(f,g,x₀,xₑ,0.5(a+c),nPoints,φa);
+            push!(pointVec,0.5(a+c));
+            push!(valueVec,Optim.minimum(OptStruct));
+            return OptStruct
         end
         ii += 1;
 
