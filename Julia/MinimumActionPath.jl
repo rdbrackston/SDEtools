@@ -116,7 +116,7 @@ end
 function MAP_Opt(f::Function, g::Function,
                  x₀::AbstractArray, xₑ::AbstractArray,
                  τ::Real, N::Signed,
-                 φ₀::Union{AbstractArray,Symbol}=:auto)
+                 φ₀::Union{AbstractArray,Symbol}=:auto, reRuns::Signed=1)
 
     dτ = τ/N;
     n = length(x₀);       # Number of state dimensions
@@ -136,10 +136,19 @@ function MAP_Opt(f::Function, g::Function,
     # Perform the optimisation and print some info
     OptStruct = Optim.optimize(S_opt, dS_opt!, φ₀, LBFGS());
     println(@sprintf("Optimisation for T=%.2f gives S=%.2f",τ,Optim.minimum(OptStruct)));
+
+    ii = 0;
+    while !Optim.converged(OptStruct) && ii<reRuns+1
+        println("Optimisation is not converged, rerunning...")
+        φ₀ = Optim.minimizer(OptStruct)
+        OptStruct = Optim.optimize(S_opt, dS_opt!, φ₀, LBFGS());
+        ii += 1;
+    end
+
     if Optim.converged(OptStruct)
         println("Optimisation is converged.")
     else
-        println("Optimisation is not converged.")
+        println("Optimisation is not converged")
     end
     return OptStruct
 end
@@ -182,10 +191,6 @@ function T_Opt!(pointVec::AbstractArray, valueVec::AbstractArray,
             tmp = MAP_Opt(f,g,x₀,xₑ,d,nPoints,φa);
         end
         φd = Optim.minimizer(tmp);
-        if Optim.iteration_limit_reached(tmp) # Re-run if not converged
-            tmp = MAP_Opt(f,g,x₀,xₑ,d,nPoints,φd);
-            φd = Optim.minimizer(tmp);
-        end
         Sd = Optim.minimum(tmp);
 
         push!(pointVec,d);
@@ -219,9 +224,9 @@ function T_Opt!(pointVec::AbstractArray, valueVec::AbstractArray,
     φM = Optim.minimizer(tmp);
 
     fU = Optim.minimum(MAP_Opt(f,g,x₀,xₑ,τU,nPoints));
+
     push!(pointVec,τL); push!(pointVec,τM); push!(pointVec,τU);
     push!(valueVec,fL); push!(valueVec,fM); push!(valueVec,fU);
-
     return GoldSectSearch(τL,τM,τU, fL,fM,fU, φL,φM, 0.0)
 
 end
