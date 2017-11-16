@@ -116,7 +116,7 @@ end
 function MAP_Opt(f::Function, g::Function,
                  x₀::AbstractArray, xₑ::AbstractArray,
                  τ::Real, N::Signed,
-                 φ₀::Union{AbstractArray,Symbol}=:auto, reRuns::Signed=2)
+                 φ₀::Union{AbstractArray,Symbol}=:auto, reRuns::Signed=6)
 
     dτ = τ/N;
     n = length(x₀);       # Number of state dimensions
@@ -161,7 +161,7 @@ function T_Opt!(pointVec::AbstractArray, valueVec::AbstractArray,
     # Function to optimise over the time duration using a golden section line
     # search algorithm
 
-    nIter = 6;
+    nIter = 30;
     ϕ = 0.5(1+sqrt(5)); # Golden ratio
     ii = 0;
 
@@ -180,13 +180,15 @@ function T_Opt!(pointVec::AbstractArray, valueVec::AbstractArray,
 
         if ii==nIter
             # Return the optimisasion result half way through the interval.
+            println("Evaluating final point")
             OptStruct = MAP_Opt(f,g,x₀,xₑ,0.5(a+c),nPoints,φa);
             push!(pointVec,0.5(a+c));
             push!(valueVec,Optim.minimum(OptStruct));
             return OptStruct
         end
-        ii += 1;
 
+        ii += 1;
+        println(@sprintf("Starting iteration no. %i out of %i", ii,nIter));
         # Evaluate the optimisation at the new point, using previous result at
         # closest existing point as the initial guess
         if (c-b)>(b-a)
