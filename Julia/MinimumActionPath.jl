@@ -149,7 +149,7 @@ function MAP_Opt(f::Function, g::Function,
     if Optim.converged(OptStruct)
         println("Optimisation is converged.")
     else
-        println("Optimisation is not converged")
+        println("Optimisation not converged")
     end
     return OptStruct
 end
