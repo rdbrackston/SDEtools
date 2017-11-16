@@ -142,6 +142,7 @@ function MAP_Opt(f::Function, g::Function,
         println("Optimisation is not converged, rerunning...")
         φ₀ = Optim.minimizer(OptStruct)
         OptStruct = Optim.optimize(S_opt, dS_opt!, φ₀, LBFGS());
+        println(@sprintf("Optimisation for T=%.2f gives S=%.2f",τ,Optim.minimum(OptStruct)));
         ii += 1;
     end
 
