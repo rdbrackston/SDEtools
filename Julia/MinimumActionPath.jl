@@ -120,6 +120,9 @@ function MAP_Opt(f::Function, g::Function,
 
     dτ = τ/N;
     n = length(x₀);       # Number of state dimensions
+    # method = ConjugateGradient();
+    # method = LBFGS();
+    method = BFGS();
 
     # Evaluate the initial path if not given
     if φ₀==:auto
@@ -134,14 +137,14 @@ function MAP_Opt(f::Function, g::Function,
     dS_opt! = (store,φ)->dS!(store,φ, f,g,x₀,xₑ,N,n,dτ);
 
     # Perform the optimisation and print some info
-    OptStruct = Optim.optimize(S_opt, dS_opt!, φ₀, LBFGS());
+    OptStruct = Optim.optimize(S_opt, dS_opt!, φ₀, method);
     println(@sprintf("Optimisation for T=%.2f gives S=%.2f",τ,Optim.minimum(OptStruct)));
 
     ii = 0;
     while !Optim.converged(OptStruct) && ii<reRuns
         println("Optimisation is not converged, rerunning...")
         φ₀ = Optim.minimizer(OptStruct)
-        OptStruct = Optim.optimize(S_opt, dS_opt!, φ₀, LBFGS());
+        OptStruct = Optim.optimize(S_opt, dS_opt!, φ₀, method);
         println(@sprintf("Optimisation for T=%.2f gives S=%.2f",τ,Optim.minimum(OptStruct)));
         ii += 1;
     end
