@@ -12,7 +12,7 @@ N = 150;
 
 # Perform the optimisation
 Tvec = [];    Svec = [];
-resObj = MAP.T_Opt!(Tvec,Svec, f,g,xₑ,xₛ,(100.,4000.),N)
+resObj = MAP.optimaltime!(Tvec,Svec, f,g,xₑ,xₛ,(100.,4000.),N)
 res = vcat(xₑ,Optim.minimizer(resObj),xₛ);
 
 plt = plot(Tvec,Svec, line=0,marker=2)

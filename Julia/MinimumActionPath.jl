@@ -4,7 +4,7 @@ using Optim
 using ForwardDiff
 
 # Function to generate the initial path
-function GenPath(X₀::AbstractArray, Xₑ::AbstractArray, N::Int64)
+function makepath(X₀::AbstractArray, Xₑ::AbstractArray, N::Int64)
 
     n = length(X₀);
 
@@ -23,7 +23,7 @@ function GenPath(X₀::AbstractArray, Xₑ::AbstractArray, N::Int64)
 end
 
 # Define the action functional
-function S(φ::AbstractArray,
+function action(φ::AbstractArray,
            f::Function, g::Function,
            X₀::AbstractArray, Xₑ::AbstractArray,
            N::Int64, n::Int64, dt::Float64)
@@ -47,8 +47,8 @@ function S(φ::AbstractArray,
     return 0.5*action
 end
 
-# Analytical gradient of action functional
-function dS!(store::AbstractArray, φ::AbstractArray,
+# Analytical gradient of the action functional
+function actiongradient!(store::AbstractArray, φ::AbstractArray,
              f::Function, g::Function,
              X₀::AbstractArray, Xₑ::AbstractArray,
              N::Int64, n::Int64, dt::Float64)
@@ -113,10 +113,10 @@ function dS!(store::AbstractArray, φ::AbstractArray,
     end
 end
 
-function MAP_Opt(f::Function, g::Function,
+function optimalpath(f::Function, g::Function,
                  x₀::AbstractArray, xₑ::AbstractArray,
                  τ::Real, N::Signed,
-                 φ₀::Union{AbstractArray,Symbol}=:auto, reRuns::Signed=6)
+                 φ₀::Union{AbstractArray,Symbol}=:auto, reRuns::Signed=10)
 
     dτ = τ/N;
     n = length(x₀);       # Number of state dimensions
@@ -126,15 +126,15 @@ function MAP_Opt(f::Function, g::Function,
 
     # Evaluate the initial path if not given
     if φ₀==:auto
-        φ₀ = GenPath(x₀,xₑ,N);
+        φ₀ = makepath(x₀,xₑ,N);
     end
 
     # Define the anonymous action function
-    S_opt = φ->S(φ, f,g,x₀,xₑ,N,n,dτ);
+    S_opt = φ->action(φ, f,g,x₀,xₑ,N,n,dτ);
 
     store = zeros(φ₀);
     # dS!(store,φ) = ForwardDiff.gradient!(store, S, φ);
-    dS_opt! = (store,φ)->dS!(store,φ, f,g,x₀,xₑ,N,n,dτ);
+    dS_opt! = (store,φ)->actiongradient!(store,φ, f,g,x₀,xₑ,N,n,dτ);
 
     # Perform the optimisation and print some info
     OptStruct = Optim.optimize(S_opt, dS_opt!, φ₀, method);
@@ -157,7 +157,7 @@ function MAP_Opt(f::Function, g::Function,
     return OptStruct
 end
 
-function T_Opt!(pointVec::AbstractArray, valueVec::AbstractArray,
+function optimaltime!(pointVec::AbstractArray, valueVec::AbstractArray,
                f::Function, g::Function,
                x₀::AbstractArray, xₑ::AbstractArray,
                TBounds::NTuple{2,Real}, nPoints::Signed)
@@ -169,7 +169,7 @@ function T_Opt!(pointVec::AbstractArray, valueVec::AbstractArray,
     ii = 0;
 
     # Define the recursive golden section algorithm
-    function GoldSectSearch(a::Float64,b::Float64,c::Float64,
+    function goldsectsearch(a::Float64,b::Float64,c::Float64,
                             Sa::Float64,Sb::Float64,Sc::Float64,
                             φa::AbstractArray, φb::AbstractArray,
                             tol::Float64)
@@ -184,7 +184,7 @@ function T_Opt!(pointVec::AbstractArray, valueVec::AbstractArray,
         if ii==nIter
             # Return the optimisasion result half way through the interval.
             println("Evaluating final point")
-            OptStruct = MAP_Opt(f,g,x₀,xₑ,0.5(a+c),nPoints,φa);
+            OptStruct = optimalpath(f,g,x₀,xₑ,0.5(a+c),nPoints,φa);
             push!(pointVec,0.5(a+c));
             push!(valueVec,Optim.minimum(OptStruct));
             return OptStruct
@@ -195,9 +195,9 @@ function T_Opt!(pointVec::AbstractArray, valueVec::AbstractArray,
         # Evaluate the optimisation at the new point, using previous result at
         # closest existing point as the initial guess
         if (c-b)>(b-a)
-            tmp = MAP_Opt(f,g,x₀,xₑ,d,nPoints,φb);
+            tmp = optimalpath(f,g,x₀,xₑ,d,nPoints,φb);
         else
-            tmp = MAP_Opt(f,g,x₀,xₑ,d,nPoints,φa);
+            tmp = optimalpath(f,g,x₀,xₑ,d,nPoints,φa);
         end
         φd = Optim.minimizer(tmp);
         Sd = Optim.minimum(tmp);
@@ -207,15 +207,15 @@ function T_Opt!(pointVec::AbstractArray, valueVec::AbstractArray,
 
         if d>b
             if Sd>Sb
-                return GoldSectSearch(a,b,d, Sa,Sb,Sd, φa,φb, tol)
+                return goldsectsearch(a,b,d, Sa,Sb,Sd, φa,φb, tol)
             else
-                return GoldSectSearch(b,d,c, Sb,Sd,Sc, φb,φd, tol)
+                return goldsectsearch(b,d,c, Sb,Sd,Sc, φb,φd, tol)
             end
         else
             if Sd>Sb
-                return GoldSectSearch(d,b,c, Sd,Sb,Sc, φd,φb, tol)
+                return goldsectsearch(d,b,c, Sd,Sb,Sc, φd,φb, tol)
             else
-                return GoldSectSearch(a,d,b, Sa,Sd,Sb, φa,φd, tol)
+                return goldsectsearch(a,d,b, Sa,Sd,Sb, φa,φd, tol)
             end
         end
     end
@@ -224,19 +224,19 @@ function T_Opt!(pointVec::AbstractArray, valueVec::AbstractArray,
     τL = TBounds[1];    τU = TBounds[2]; # Initial bounds
     τM = (τU+ϕ*τL)/(1+ϕ);    # Third point in starting triple
 
-    tmp = MAP_Opt(f,g,x₀,xₑ,τL,nPoints);
+    tmp = optimalpath(f,g,x₀,xₑ,τL,nPoints);
     φL = Optim.minimizer(tmp);
     fL = Optim.minimum(tmp);
 
-    tmp = MAP_Opt(f,g,x₀,xₑ,τM,nPoints);
+    tmp = optimalpath(f,g,x₀,xₑ,τM,nPoints);
     fM = Optim.minimum(tmp);
     φM = Optim.minimizer(tmp);
 
-    fU = Optim.minimum(MAP_Opt(f,g,x₀,xₑ,τU,nPoints));
+    fU = Optim.minimum(optimalpath(f,g,x₀,xₑ,τU,nPoints));
 
     push!(pointVec,τL); push!(pointVec,τM); push!(pointVec,τU);
     push!(valueVec,fL); push!(valueVec,fM); push!(valueVec,fU);
-    return GoldSectSearch(τL,τM,τU, fL,fM,fU, φL,φM, 0.0)
+    return goldsectsearch(τL,τM,τU, fL,fM,fU, φL,φM, 0.0)
 
 end
 
