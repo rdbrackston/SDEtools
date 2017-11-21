@@ -1,10 +1,10 @@
-module normalSoS
+module NormalSoS
 
 using SumOfSquares, JuMP, PolyJuMP, SCS, DynamicPolynomials, MultivariatePolynomials
 
-export NormDecomp
+export normdecomp
 
-function NormDecomp(f, x, SDPsolver=SCSSolver())
+function normdecomp(f, x, SDPsolver=SCSSolver())
 
     nIters = 1;
     o = 2;
@@ -16,7 +16,7 @@ function NormDecomp(f, x, SDPsolver=SCSSolver())
 
     # The Lyapunov function V(x):
     # Z = monomials(x,0:o);
-    Z = MinimalBasis(f,x);
+    Z = minimalbasis(f,x);
     @polyvariable m1 V Z
 
     # Positive definiteness constraint
@@ -66,7 +66,7 @@ function NormDecomp(f, x, SDPsolver=SCSSolver())
 
 end
 
-function MinimalBasis(f,x)
+function minimalbasis(f,x)
 
     basis = 1.0;
 

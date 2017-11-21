@@ -4,7 +4,7 @@ using SumOfSquares, JuMP, PolyJuMP, DynamicPolynomials, MultivariatePolynomials
 # using SCS
 using Mosek
 include("normal-SoS.jl")
-using normalSoS
+using NormalSoS
 
 
 ## Example 1: Quadratic system from Zhou et al (2012) - Y
@@ -12,7 +12,7 @@ using normalSoS
 @polyvar x[1:2]
 f1 = [-x[1] + 2.0x[2]^2;
      -x[1]*x[2] - 2.0x[2]];
-@time Ueg1 = normalSoS.NormDecomp(f1,x, MosekSolver())
+@time Ueg1 = normalSoS.normdecomp(f1,x, MosekSolver())
 # PlotLandscape(f,Ueg1,vars,[-3 3],[-3 3]);
 # PlotVectors(f,Ueg1,vars,[-3 3],[-3 3]);
 # CheckNorm(f,Ueg1,vars)
@@ -23,7 +23,7 @@ f1 = [-x[1] + 2.0x[2]^2;
 @polyvar x[1:2]
 f2 = [-1.0 + 9.0x[1] - 2.0x[1]^3 + 9.0x[2] - 2.0x[2]^3;
       1.0 - 11.0x[1] + 2.0x[1]^3 + 11.0x[2] - 2.0x[2]^3];
-@time Ueg2 = normalSoS.NormDecomp(f2,x)
+@time Ueg2 = normalSoS.normdecomp(f2,x)
 
 
 ## Example 3: One-dimensional bistable system - Y
@@ -44,7 +44,7 @@ f4 = [-x[1]^3 + x[1] - 2.0x[1]^3*x[2]^4 + 2.0x[1]*x[2]^4;
 fc4 = [4.0x[2]^3 + 2.0x[1]^4*x[2]^3 - 4.0x[1]^2*x[2]^3;
          x[1] - x[1]^3 - 2.0x[1]^3*x[2]^4 + 2.0x[1]*x[2]^4];
 #f4 = f4 + 0.1fc4;
-Ueg4 = normalSoS.NormDecomp(f4,x)
+Ueg4 = normalSoS.normdecomp(f4,x)
 
 
 ## Example 6: Fei's 4dof Michaelis-Menten enzyme dynamics model
@@ -58,4 +58,4 @@ f6 = [-h1*x[1]x[2] + h2*x[3];
      h1*x[1]x[2] - (h2+h3)x[3];
      h3*x[3]];
 
-Ueg6 = normalSoS.NormDecomp(f6,x)
+Ueg6 = normalSoS.normdecomp(f6,x)
