@@ -1,13 +1,9 @@
 module NormalSoS
 
-using SumOfSquares, JuMP, PolyJuMP, SCS, DynamicPolynomials, MultivariatePolynomials
-
+using SumOfSquares, JuMP, PolyJuMP, DynamicPolynomials, MultivariatePolynomials, CSDP
 export normdecomp
 
-function normdecomp(f, x, SDPsolver=SCSSolver())
-
-    nIters = 1;
-    o = 2;
+function normdecomp(f, x, SDPsolver=CSDPSolver(), nIters=1, o=2)
 
     n = length(f);
 
@@ -20,10 +16,10 @@ function normdecomp(f, x, SDPsolver=SCSSolver())
     @polyvariable m1 V Z
 
     # Positive definiteness constraint
-    @polyconstraint m1 V >= ϵ*sum(x.^o);
+    @polyconstraint m1 V ≥ ϵ*sum(x.^o);
 
     # Apply matrix constraint, ∇U⋅g ≤ 0.
-    I = normalSoS.eye(x);
+    I = NormalSoS.eye(x);
     Mv = [-dot(differentiate(V, x),f) differentiate(V,x)';
            differentiate(V,x)         I];
     @SDconstraint m1 Mv ⪰ 0 # Mv positive definite
