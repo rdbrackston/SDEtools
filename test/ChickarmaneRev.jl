@@ -4,7 +4,7 @@ using DifferentialEquations
 using Plots
 gr()
 
-include("MinimumActionPath.jl");    using MAP
+include("../src/MinimumActionPath.jl");    using MAP
 include("ChickarmaneSystem.jl")
 
 # Specify the parameters

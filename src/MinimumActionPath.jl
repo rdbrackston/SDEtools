@@ -3,6 +3,24 @@ module MAP
 using Optim
 using ForwardDiff
 
+abstract type Tracker end
+
+struct OptimisationTracker <: Tracker
+    pointVec::AbstractArray{AbstractFloat};
+    valueVec::AbstractArray{AbstractFloat};
+    paths::AbstractArray{AbstractArray};
+    convergences::AbstractArray{Bool};
+end
+
+function updatetracker!(trackerObj::OptimisationTracker,
+                        tVal::AbstractFloat, optStruct)
+
+    push!(trackerObj.pointVec,tVal);
+    push!(trackerObj.valueVec,Optim.minimum(optStruct));
+    push!(trackerObj.paths,Optim.minimizer(optStruct));
+    push!(trackerObj.convergences,Optim.converged(optStruct));
+end
+
 # Function to generate the initial path
 function makepath(X₀::AbstractArray, Xₑ::AbstractArray, N::Int64)
 
@@ -49,9 +67,9 @@ end
 
 # Analytical gradient of the action functional
 function actiongradient!(store::AbstractArray, φ::AbstractArray,
-             f::Function, g::Function,
-             X₀::AbstractArray, Xₑ::AbstractArray,
-             N::Int64, n::Int64, dt::Float64)
+                         f::Function, g::Function,
+                         X₀::AbstractArray, Xₑ::AbstractArray,
+                         N::Int64, n::Int64, dt::Float64)
 
     V = vcat(X₀,φ,Xₑ);    # Complete vector of points
 
@@ -114,15 +132,15 @@ function actiongradient!(store::AbstractArray, φ::AbstractArray,
 end
 
 function optimalpath(f::Function, g::Function,
-                 x₀::AbstractArray, xₑ::AbstractArray,
-                 τ::Real, N::Signed,
-                 φ₀::Union{AbstractArray,Symbol}=:auto, reRuns::Signed=10)
+                     x₀::AbstractArray, xₑ::AbstractArray,
+                     τ::Real, N::Signed,
+                     φ₀::Union{AbstractArray,Symbol}=:auto, reRuns::Signed=1)
 
     dτ = τ/N;
     n = length(x₀);       # Number of state dimensions
-    # method = ConjugateGradient();
-    # method = LBFGS();
-    method = BFGS();
+    # method = ConjugateGradOptim.convergedient();
+    method = LBFGS();
+    # method = BFGS();
 
     # Evaluate the initial path if not given
     if φ₀==:auto
@@ -133,7 +151,6 @@ function optimalpath(f::Function, g::Function,
     S_opt = φ->action(φ, f,g,x₀,xₑ,N,n,dτ);
 
     store = zeros(φ₀);
-    # dS!(store,φ) = ForwardDiff.gradient!(store, S, φ);
     dS_opt! = (store,φ)->actiongradient!(store,φ, f,g,x₀,xₑ,N,n,dτ);
 
     # Perform the optimisation and print some info
@@ -157,10 +174,10 @@ function optimalpath(f::Function, g::Function,
     return OptStruct
 end
 
-function optimaltime!(pointVec::AbstractArray, valueVec::AbstractArray,
-               f::Function, g::Function,
-               x₀::AbstractArray, xₑ::AbstractArray,
-               TBounds::NTuple{2,Real}, nPoints::Signed)
+function optimaltime!(trackerObj::OptimisationTracker,
+                      f::Function, g::Function,
+                      x₀::AbstractArray, xₑ::AbstractArray,
+                      TBounds::NTuple{2,Real}, nPoints::Signed)
     # Function to optimise over the time duration using a golden section line
     # search algorithm
 
@@ -185,8 +202,10 @@ function optimaltime!(pointVec::AbstractArray, valueVec::AbstractArray,
             # Return the optimisasion result half way through the interval.
             println("Evaluating final point")
             OptStruct = optimalpath(f,g,x₀,xₑ,0.5(a+c),nPoints,φa);
-            push!(pointVec,0.5(a+c));
-            push!(valueVec,Optim.minimum(OptStruct));
+
+            updatetracker!(trackerObj, 0.5(a+c),OptStruct)
+            # push!(trackerObj.pointVec,0.5(a+c));
+            # push!(trackerObj.valueVec,Optim.minimum(OptStruct));
             return OptStruct
         end
 
@@ -202,8 +221,9 @@ function optimaltime!(pointVec::AbstractArray, valueVec::AbstractArray,
         φd = Optim.minimizer(tmp);
         Sd = Optim.minimum(tmp);
 
-        push!(pointVec,d);
-        push!(valueVec,Sd);
+        updatetracker!(trackerObj, d,tmp)
+        # push!(trackerObj.pointVec,d);
+        # push!(trackerObj.valueVec,Sd);
 
         if d>b
             if Sd>Sb
@@ -225,17 +245,21 @@ function optimaltime!(pointVec::AbstractArray, valueVec::AbstractArray,
     τM = (τU+ϕ*τL)/(1+ϕ);    # Third point in starting triple
 
     tmp = optimalpath(f,g,x₀,xₑ,τL,nPoints);
-    φL = Optim.minimizer(tmp);
     fL = Optim.minimum(tmp);
+    φL = Optim.minimizer(tmp);
+    updatetracker!(trackerObj, τL,tmp);
 
     tmp = optimalpath(f,g,x₀,xₑ,τM,nPoints);
     fM = Optim.minimum(tmp);
     φM = Optim.minimizer(tmp);
+    updatetracker!(trackerObj, τM,tmp);
 
-    fU = Optim.minimum(optimalpath(f,g,x₀,xₑ,τU,nPoints));
+    tmp = optimalpath(f,g,x₀,xₑ,τU,nPoints);
+    fU = Optim.minimum(tmp);
+    updatetracker!(trackerObj, τU,tmp);
 
-    push!(pointVec,τL); push!(pointVec,τM); push!(pointVec,τU);
-    push!(valueVec,fL); push!(valueVec,fM); push!(valueVec,fU);
+    # push!(trackerObj.pointVec,τL); push!(trackerObj.pointVec,τM); push!(trackerObj.pointVec,τU);
+    # push!(trackerObj.valueVec,fL); push!(trackerObj.valueVec,fM); push!(trackerObj.valueVec,fU);
     return goldsectsearch(τL,τM,τU, fL,fM,fU, φL,φM, 0.0)
 
 end
