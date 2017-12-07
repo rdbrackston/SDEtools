@@ -1,5 +1,12 @@
 module MAP
 
+#  Possible future modifications
+#  - Evaluate gMAM, the geometric, time-independent action function
+#  - Include non-gradient optimisation methods, e.g. GA, simulated annelaing
+#  - Parametrise paths in terms of fewer points and use splines to interpolate (Interpolations.jl)
+#  - Consider using Gaussian Process as alternative to spline?
+#  - Use a GP to fit a landscape based on MAP between points
+
 using Optim
 using ForwardDiff
 
@@ -134,13 +141,14 @@ end
 function optimalpath(f::Function, g::Function,
                      x₀::AbstractArray, xₑ::AbstractArray,
                      τ::Real, N::Signed,
-                     φ₀::Union{AbstractArray,Symbol}=:auto, reRuns::Signed=1)
+                     φ₀::Union{AbstractArray,Symbol}=:auto, reRuns::Signed=10)
 
     dτ = τ/N;
     n = length(x₀);       # Number of state dimensions
     # method = ConjugateGradOptim.convergedient();
-    method = LBFGS();
-    # method = BFGS();
+    # method = LBFGS();
+    method = BFGS();
+    # method = NelderMead();
 
     # Evaluate the initial path if not given
     if φ₀==:auto
@@ -261,7 +269,6 @@ function optimaltime!(trackerObj::OptimisationTracker,
     # push!(trackerObj.pointVec,τL); push!(trackerObj.pointVec,τM); push!(trackerObj.pointVec,τU);
     # push!(trackerObj.valueVec,fL); push!(trackerObj.valueVec,fM); push!(trackerObj.valueVec,fU);
     return goldsectsearch(τL,τM,τU, fL,fM,fU, φL,φM, 0.0)
-
 end
 
 end
