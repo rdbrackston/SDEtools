@@ -1,7 +1,13 @@
 module NormalSoS
 
 using SumOfSquares, JuMP, PolyJuMP, DynamicPolynomials, MultivariatePolynomials, CSDP
+using Plots
+gr()
 export normdecomp
+
+# To do:
+#  - Add plotting functions
+#  - Add function to check normality
 
 function normdecomp(f, x, SDPsolver=CSDPSolver(), nIters=1, o=2)
 
@@ -85,6 +91,18 @@ function eye(x)
         push!(v,1.0+0.0x[1]);
     end
     return diagm(v)
+end
+
+function plotlandscape(U, x, lims)
+
+    # Assemble the grid of points
+    xv = collect(linspace(-2,2,30));
+    yv = collect(linspace(-2,2,30));
+
+    # Evaluate U using an array comprehension then plot
+    Umat = [Float64(subs(U, x[1]=>xv[ii], x[2]=>yv[jj])) for ii=1:30, jj=1:30];
+    Plots.contour(xv,yv,Umat', xlabel="x1", ylabel="x2");
+
 end
 
 end
