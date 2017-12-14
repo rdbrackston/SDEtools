@@ -1,7 +1,7 @@
 # Run a series of tests of the NormDecomp function
 
 using SumOfSquares, JuMP, PolyJuMP, DynamicPolynomials, MultivariatePolynomials
-# using SCS
+using SCS
 # using Mosek
 using CSDP
 
@@ -62,4 +62,14 @@ F6(x::Vector) = [-h1*x[1]x[2] + h2*x[3];
      h1*x[1]x[2] - (h2+h3)x[3];
      h3*x[3]];
 f6 = F6(x);
-Ueg6 = NormalSoS.normdecomp(f6,x, CSDPSolver())
+@time Ueg6 = NormalSoS.normdecomp(f6,x, CSDPSolver())
+
+
+## Example 7: From Papachristodolou and Prajna
+@polyvar x[1:4]
+F7(x::Vector) = [-x[1] + x[2]^3 - 3*x[3]*x[4];
+                 -x[1] - x[2]^3;
+                 x[1]*x[4] - x[3];
+                 x[1]*x[3] - x[4]^3];
+f7 = F7(x);
+@time Ueg7 = NormalSoS.normdecomp(f7,x, CSDPSolver(),0,4)
