@@ -115,4 +115,14 @@ function plotlandscape(f, U, x, lims, scl=0.1)
 
 end
 
+function checknorm(f, U, x)
+
+    # Evaluate ∇U
+    ∇U = differentiate(U,x);
+    res = dot(∇U,f) + dot(∇U,∇U);
+
+    return maximum(abs.(coefficients(res))) /
+            minimum([minimum(abs.(coefficients(f[ii]))) for ii=1:length(x)]);
+end
+
 end
