@@ -93,22 +93,29 @@ function eye(x)
     return diagm(v)
 end
 
-function plotlandscape(f, U, x, lims, scl=0.1)
+function plotlandscape(f, U, x, lims, scl=0.05)
+
+    Ng = 100;
+    Nds = 10;
 
     # Assemble the grid of points
-    xv = collect(linspace(-2,2,30));
-    yv = collect(linspace(-2,2,30));
+    xv = collect(linspace(lims[1][1],lims[1][2],Ng));
+    yv = collect(linspace(lims[2][1],lims[2][2],Ng));
 
     # Evaluate U using an array comprehension then plot
-    Umat = [Float64(subs(U, x[1]=>xv[ii], x[2]=>yv[jj])) for ii=1:30, jj=1:30];
+    for ii=1:length(x)-2
+        U = subs(U,x[ii+2]=>0.0);
+        f = subs(f,x[ii+2]=>0.0);
+    end
+    Umat = [Float64(subs(U, x[1]=>xv[ii], x[2]=>yv[jj])) for ii=1:Ng, jj=1:Ng];
     plt = Plots.contour(xv,yv,Umat', xlabel="x1", ylabel="x2");
 
     # Evaluate f using an array comprehension then plot
-    xm = vec([xv[ii] for jj=1:3:30, ii=1:3:30]);
-    ym = vec([yv[ii] for ii=1:3:30, jj=1:3:30]);
+    xm = vec([xv[ii] for jj=1:Nds:Ng, ii=1:Nds:Ng]);
+    ym = vec([yv[ii] for ii=1:Nds:Ng, jj=1:Nds:Ng]);
     fMat = vec([(scl.*Float64(subs(f[1], x[1]=>xv[ii], x[2]=>yv[jj])),
-                 scl.*Float64(subs(f[2], x[1]=>xv[ii], x[2]=>yv[jj])))
-            for jj=1:3:30, ii=1:3:30]);
+                 scl.*Float64(subs(f[2], x[1]=>xv[ii], x[2]=>yv[jj])));
+            for jj=1:Nds:Ng, ii=1:Nds:Ng]);
     Plots.quiver!(xm,ym, quiver=fMat);
 
     return plt
