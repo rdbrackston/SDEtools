@@ -93,7 +93,7 @@ function eye(x)
     return diagm(v)
 end
 
-function plotlandscape(U, x, lims)
+function plotlandscape(f, U, x, lims, scl=0.1)
 
     # Assemble the grid of points
     xv = collect(linspace(-2,2,30));
@@ -101,7 +101,17 @@ function plotlandscape(U, x, lims)
 
     # Evaluate U using an array comprehension then plot
     Umat = [Float64(subs(U, x[1]=>xv[ii], x[2]=>yv[jj])) for ii=1:30, jj=1:30];
-    Plots.contour(xv,yv,Umat', xlabel="x1", ylabel="x2");
+    plt = Plots.contour(xv,yv,Umat', xlabel="x1", ylabel="x2");
+
+    # Evaluate f using an array comprehension then plot
+    xm = vec([xv[ii] for jj=1:3:30, ii=1:3:30]);
+    ym = vec([yv[ii] for ii=1:3:30, jj=1:3:30]);
+    fMat = vec([(scl.*Float64(subs(f[1], x[1]=>xv[ii], x[2]=>yv[jj])),
+                 scl.*Float64(subs(f[2], x[1]=>xv[ii], x[2]=>yv[jj])))
+            for jj=1:3:30, ii=1:3:30]);
+    Plots.quiver!(xm,ym, quiver=fMat);
+
+    return plt
 
 end
 
