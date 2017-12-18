@@ -9,7 +9,7 @@ export normdecomp
 #  - Add plotting functions
 #  - Add function to check normality
 
-function normdecomp(f, x, SDPsolver=CSDPSolver(), nIters=1, o=2)
+function normdecomp(f, x, SDPsolver=CSDPSolver(), nIters=1, o=2, basis=:minimal)
 
     n = length(f);
 
@@ -17,8 +17,16 @@ function normdecomp(f, x, SDPsolver=CSDPSolver(), nIters=1, o=2)
     @variable m1 ϵ
 
     # The Lyapunov function V(x):
-    # Z = monomials(x,0:o);
-    Z = minimalbasis(f,x);
+    if basis == :minimal
+        Z = minimalbasis(f,x);
+    elseif basis == :monomial
+        Z = monomials(x,0:o);
+    else
+        println("Invalid basis selection. Exiting.")
+        return
+    end
+    print("Chosen basis as:", "\n")
+    print(Z, "\n")
     @polyvariable m1 V Z
 
     # Positive definiteness constraint
@@ -81,8 +89,6 @@ function minimalbasis(f,x)
         basis = basis + fTmp*x[i];
     end
     basis = monomials(basis);
-    print("Found minimal basis as:", "\n")
-    print(basis, "\n")
 
     return basis
 
@@ -134,8 +140,8 @@ function checknorm(f, U, x)
     ∇U = differentiate(U,x);
     res = dot(∇U,f) + dot(∇U,∇U);
 
-    return maximum(abs.(coefficients(res))) /
-            minimum([minimum(abs.(coefficients(f[ii]))) for ii=1:length(x)]);
+    return mean(abs.(coefficients(res))) /
+            mean([mean(abs.(coefficients(f[ii]))) for ii=1:length(x)]);
 end
 
 end
