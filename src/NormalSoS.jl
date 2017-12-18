@@ -74,7 +74,11 @@ function minimalbasis(f,x)
 
     # Loop over the elements of f
     for (i,fi) in enumerate(f)
-        basis = basis + fi*x[i];
+        fTmp = [];
+        for elem in fi
+            fTmp += coefficient(elem)*elem;
+        end
+        basis = basis + fTmp*x[i];
     end
     basis = monomials(basis);
     print("Found minimal basis as:", "\n")
@@ -93,7 +97,7 @@ function eye(x)
     return diagm(v)
 end
 
-function plotlandscape(f, U, x, lims, scl=0.05)
+function plotlandscape(f, U, x, lims, vectors=false, scl=0.05)
 
     Ng = 100;
     Nds = 10;
@@ -110,13 +114,15 @@ function plotlandscape(f, U, x, lims, scl=0.05)
     Umat = [Float64(subs(U, x[1]=>xv[ii], x[2]=>yv[jj])) for ii=1:Ng, jj=1:Ng];
     plt = Plots.contour(xv,yv,Umat', xlabel="x1", ylabel="x2");
 
-    # Evaluate f using an array comprehension then plot
-    xm = vec([xv[ii] for jj=1:Nds:Ng, ii=1:Nds:Ng]);
-    ym = vec([yv[ii] for ii=1:Nds:Ng, jj=1:Nds:Ng]);
-    fMat = vec([(scl.*Float64(subs(f[1], x[1]=>xv[ii], x[2]=>yv[jj])),
-                 scl.*Float64(subs(f[2], x[1]=>xv[ii], x[2]=>yv[jj])));
-            for jj=1:Nds:Ng, ii=1:Nds:Ng]);
-    Plots.quiver!(xm,ym, quiver=fMat);
+    # If desired, evaluate f using an array comprehension then plot
+    if vectors
+        xm = vec([xv[ii] for jj=1:Nds:Ng, ii=1:Nds:Ng]);
+        ym = vec([yv[ii] for ii=1:Nds:Ng, jj=1:Nds:Ng]);
+        fMat = vec([(scl.*Float64(subs(f[1], x[1]=>xv[ii], x[2]=>yv[jj])),
+                     scl.*Float64(subs(f[2], x[1]=>xv[ii], x[2]=>yv[jj])))
+               for jj=1:Nds:Ng, ii=1:Nds:Ng]);
+        Plots.quiver!(xm,ym, quiver=fMat);
+    end
 
     return plt
 
