@@ -21,8 +21,9 @@ F1(x::Vector) = [-x[1] + 2.0x[2]^2;
      -x[1]*x[2] - 2.0x[2]];
 f1 = F1(x1);
 @time Ueg1 = NormalSoS.normdecomp(f1,x1, MosekSolver())
-plt1 = NormalSoS.plotlandscape(f1,Ueg1,x1,([-3 3],[-3 3]),true);    plot(plt1)
+plt1 = NormalSoS.plotlandscape(f1,Ueg1,x1,([-3 3],[-3 3]),false);    plot(plt1)
 NormalSoS.checknorm(f1,Ueg1,x1)
+plttmp = NormalSoS.plotvectors(f1,x1,([-3 3],[-3 3]));    plot(plttmp)
 
 
 ## Example 2: Quartic system from Zhou et al (2012) - Y
@@ -65,7 +66,7 @@ NormalSoS.checknorm(f4,Ueg4,x4)
 
 
 ## Example 7: From Papachristodolou and Prajna (2005)
-# Finds a reasonable landscape, but cannot satisfy orthogonality
+# Finds a reasonable landscape and gets close to orthogonality
 @polyvar x7[1:4]
 F7(x::Vector) = [-x[1] + x[2]^3 - 3*x[3]*x[4];
                  -x[1] - x[2]^3;
@@ -73,7 +74,7 @@ F7(x::Vector) = [-x[1] + x[2]^3 - 3*x[3]*x[4];
                  x[1]*x[3] - x[4]^3];
 f7 = F7(x7);
 @time Ueg7 = NormalSoS.normdecomp(f7,x7, MosekSolver(),1,4)
-plt7 = NormalSoS.plotlandscape(f7,Ueg7,x7,([-3 3],[-3 3]));    plot(plt7)
+plt7 = NormalSoS.plotlandscape(f7,Ueg7,x7,([-3 3],[-3 3]), true);    plot(plt7)
 NormalSoS.checknorm(f7,Ueg7,x7)
 
 

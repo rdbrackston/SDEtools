@@ -134,6 +134,26 @@ function plotlandscape(f, U, x, lims, vectors=false, scl=0.05)
 
 end
 
+function plotvectors(f, x, lims, scl=0.05)
+
+    Ng = 100;
+    Nds = 10;
+
+    # Assemble the grid of points
+    xv = collect(linspace(lims[1][1],lims[1][2],Ng));
+    yv = collect(linspace(lims[2][1],lims[2][2],Ng));
+
+    xm = vec([xv[ii] for jj=1:Nds:Ng, ii=1:Nds:Ng]);
+    ym = vec([yv[ii] for ii=1:Nds:Ng, jj=1:Nds:Ng]);
+    fMat = vec([(scl.*Float64(subs(f[1], x[1]=>xv[ii], x[2]=>yv[jj])),
+                 scl.*Float64(subs(f[2], x[1]=>xv[ii], x[2]=>yv[jj])))
+           for jj=1:Nds:Ng, ii=1:Nds:Ng]);
+    plt = Plots.quiver(xm,ym, quiver=fMat, color=:black);
+
+    return plt
+
+end
+
 function checknorm(f, U, x)
 
     # Evaluate ∇U
