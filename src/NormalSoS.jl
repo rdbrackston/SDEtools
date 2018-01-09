@@ -28,14 +28,18 @@ function normdecomp(f, x, SDPsolver=CSDPSolver(), nIters=1, o=2, basis=:minimal)
     print("Chosen basis as:", "\n")
     print(Z, "\n")
     @polyvariable m1 V Z
+    # @variable m1 V Z
 
     # Positive definiteness constraint
     @polyconstraint m1 V ≥ ϵ*sum(x.^o);
+    # @constraint m1 V ≥ ϵ*sum(x.^o);
 
     # Apply matrix constraint, ∇U⋅g ≤ 0.
     I = NormalSoS.eye(x);
-    Mv = [-dot(differentiate(V, x),f) differentiate(V,x)';
-           differentiate(V,x)         I];
+    Mv = [-dot(differentiate(V, x),f); differentiate(V,x)];
+    # Mv = [-dot(differentiate(V, x),f) differentiate(V,x)';
+    #        differentiate(V,x)         I];
+    for ii=1:n; Mv = hcat(Mv, [differentiate(V,x)[ii];I[:,ii]]); end
     @SDconstraint m1 Mv ⪰ 0 # Mv positive definite
 
     @objective m1 Max ϵ
@@ -51,18 +55,24 @@ function normdecomp(f, x, SDPsolver=CSDPSolver(), nIters=1, o=2, basis=:minimal)
         @variable m2 ϵ
         @variable m2 α
         @polyvariable m2 V Z
+        # @variable m2 V Z
 
         # Positive definiteness constraint
         @polyconstraint m2 V ≥ ϵ*sum(x.^o);
+        # @constraint m2 V ≥ ϵ*sum(x.^o);
 
         # Apply matrix constraint, ∇U⋅g ≤ 0.
-        Mv = [-dot(differentiate(V, x),f) differentiate(V,x)';
-               differentiate(V,x)         I];
+        Mv = [-dot(differentiate(V, x),f); differentiate(V,x)];
+        # Mv = [-dot(differentiate(V, x),f) differentiate(V,x)';
+        #        differentiate(V,x)         I];
+        for ii=1:n; Mv = hcat(Mv, [differentiate(V,x)[ii];I[:,ii]]); end
         @SDconstraint m2 Mv ⪰ 0 # Mv positive definite
 
         # Wynn inequality constraint
         @polyconstraint m2 dot(differentiate(V,x),f+2*differentiate(U,x)) ≥
             α*dot(differentiate(U,x),f) + (1+α)*sum(differentiate(U,x).^2)
+        # @constraint m2 dot(differentiate(V,x),f+2*differentiate(U,x)) ≥
+        #     α*dot(differentiate(U,x),f) + (1+α)*sum(differentiate(U,x).^2)
 
         @constraint m2 α ≥ 0
         @constraint m2 ϵ ≥ 0
@@ -118,7 +128,7 @@ function plotlandscape(f, U, x, lims, vectors=false, scl=0.05)
         f = subs(f,x[ii+2]=>0.0);
     end
     Umat = [Float64(subs(U, x[1]=>xv[ii], x[2]=>yv[jj])) for ii=1:Ng, jj=1:Ng];
-    plt = Plots.contour(xv,yv,Umat', xlabel="x1", ylabel="x2");
+    plt = Plots.contour(xv,yv,Umat', xlabel="x1",ylabel="x2", aspect_ratio=:equal);
 
     # If desired, evaluate f using an array comprehension then plot
     if vectors
@@ -127,7 +137,7 @@ function plotlandscape(f, U, x, lims, vectors=false, scl=0.05)
         fMat = vec([(scl.*Float64(subs(f[1], x[1]=>xv[ii], x[2]=>yv[jj])),
                      scl.*Float64(subs(f[2], x[1]=>xv[ii], x[2]=>yv[jj])))
                for jj=1:Nds:Ng, ii=1:Nds:Ng]);
-        Plots.quiver!(xm,ym, quiver=fMat);
+        Plots.quiver!(xm,ym, quiver=fMat, color=:black);
     end
 
     return plt
@@ -148,7 +158,7 @@ function plotvectors(f, x, lims, scl=0.05)
     fMat = vec([(scl.*Float64(subs(f[1], x[1]=>xv[ii], x[2]=>yv[jj])),
                  scl.*Float64(subs(f[2], x[1]=>xv[ii], x[2]=>yv[jj])))
            for jj=1:Nds:Ng, ii=1:Nds:Ng]);
-    plt = Plots.quiver(xm,ym, quiver=fMat, color=:black);
+    plt = Plots.quiver(xm,ym, quiver=fMat, color=:black, aspect_ratio=:equal);
 
     return plt
 
