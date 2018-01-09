@@ -118,14 +118,17 @@ function plotlandscape(f, U, x, lims, vectors=false, scl=0.05)
         f = subs(f,x[ii+2]=>0.0);
     end
     Umat = [Float64(subs(U, x[1]=>xv[ii], x[2]=>yv[jj])) for ii=1:Ng, jj=1:Ng];
-    plt = Plots.contour(xv,yv,Umat', xlabel="x1",ylabel="x2", aspect_ratio=:equal);
+    plt = Plots.contour(xv,yv,Umat'-minimum(Umat),
+                        xlabel="x1",ylabel="x2", aspect_ratio=:equal);
 
     # If desired, evaluate f using an array comprehension then plot
+    gU = differentiate(U,x); # Gradient
+    fU = f + gU;             # Curl component
     if vectors
         xm = vec([xv[ii] for jj=1:Nds:Ng, ii=1:Nds:Ng]);
         ym = vec([yv[ii] for ii=1:Nds:Ng, jj=1:Nds:Ng]);
-        fMat = vec([(scl.*Float64(subs(f[1], x[1]=>xv[ii], x[2]=>yv[jj])),
-                     scl.*Float64(subs(f[2], x[1]=>xv[ii], x[2]=>yv[jj])))
+        fMat = vec([(scl.*Float64(subs(fU[1], x[1]=>xv[ii], x[2]=>yv[jj])),
+                     scl.*Float64(subs(fU[2], x[1]=>xv[ii], x[2]=>yv[jj])))
                for jj=1:Nds:Ng, ii=1:Nds:Ng]);
         Plots.quiver!(xm,ym, quiver=fMat, color=:black);
     end
