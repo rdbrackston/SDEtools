@@ -20,8 +20,8 @@ CSDP   - Faster than SCS but requires more iterations or higher order bounding
 F1(x::Vector) = [-x[1] + 2.0x[2]^2;
      -x[1]*x[2] - 2.0x[2]];
 f1 = F1(x1);
-@time Ueg1 = NormalSoS.normdecomp(f1,x1, MosekSolver())
-plt1 = NormalSoS.plotlandscape(f1,Ueg1,x1,([-3 3],[-3 3]),false);    plot(plt1)
+@time Ueg1 = NormalSoS.normdecomp(f1,x1, MosekSolver(),0)
+pltLan1 = NormalSoS.plotlandscape(f1,Ueg1,x1,([-3 3],[-3 3]),false);    plot(plt1)
 NormalSoS.checknorm(f1,Ueg1,x1)
 plttmp = NormalSoS.plotvectors(f1,x1,([-3 3],[-3 3]));    plot(plttmp)
 

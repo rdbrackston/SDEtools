@@ -127,10 +127,17 @@ function plotlandscape(f, U, x, lims, vectors=false, scl=0.05)
     if vectors
         xm = vec([xv[ii] for jj=1:Nds:Ng, ii=1:Nds:Ng]);
         ym = vec([yv[ii] for ii=1:Nds:Ng, jj=1:Nds:Ng]);
-        fMat = vec([(scl.*Float64(subs(fU[1], x[1]=>xv[ii], x[2]=>yv[jj])),
+        fMat = vec([(scl.*Float64(subs(f[1], x[1]=>xv[ii], x[2]=>yv[jj])),
+                     scl.*Float64(subs(f[2], x[1]=>xv[ii], x[2]=>yv[jj])))
+               for jj=1:Nds:Ng, ii=1:Nds:Ng]);
+        gMat = vec([(scl.*Float64(subs(-gU[1], x[1]=>xv[ii], x[2]=>yv[jj])),
+                     scl.*Float64(subs(-gU[2], x[1]=>xv[ii], x[2]=>yv[jj])))
+               for jj=1:Nds:Ng, ii=1:Nds:Ng]);
+        cMat = vec([(scl.*Float64(subs(fU[1], x[1]=>xv[ii], x[2]=>yv[jj])),
                      scl.*Float64(subs(fU[2], x[1]=>xv[ii], x[2]=>yv[jj])))
                for jj=1:Nds:Ng, ii=1:Nds:Ng]);
-        Plots.quiver!(xm,ym, quiver=fMat, color=:black);
+        Plots.quiver!(xm,ym, quiver=gMat, color=:black);
+        Plots.quiver!(xm,ym, quiver=cMat, color=:black);
     end
 
     return plt
