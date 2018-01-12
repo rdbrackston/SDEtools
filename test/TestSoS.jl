@@ -61,9 +61,22 @@ F5(x::Vector) = [-x[1] + x[2] + x[1]x[2];
                  -x[1] - x[1]^2];
 f5 = F5(x5);
 @time Ueg5 = NormalSoS.normdecomp(f5,x5, MosekSolver(),1,4)
-plt4 = NormalSoS.plotlandscape(f4,Ueg4,x4,([-3 3],[-3 3]));    plot(plt4)
-NormalSoS.checknorm(f4,Ueg4,x4)
+plt5 = NormalSoS.plotlandscape(f5,Ueg5,x5,([-3 3],[-3 3]));    plot(plt5)
+NormalSoS.checknorm(f5,Ueg5,x5)
 
+
+## Example 6: The Maier-Stein Model
+# For μ=γ, U = -0.5x[1]^2 + 0.25x[1]^4 + 0.5μx[2]^2 + 0.5μx[1]^2x[2]^2
+# Inexplicable fails, even in case of pure potential
+γ = 1.0;    μ = 4.5γ;
+@polyvar x6[1:2]
+F6(x::Vector) = [x[1] - x[1]^3 - γ*x[1]x[2]^2;
+                 -μ*(x[1]^2 + 1)x[2]];
+f6 = F6(x6);
+@time Ueg6 = NormalSoS.normdecomp(f6,x6, MosekSolver(),5,2)
+plt6 = NormalSoS.plotlandscape(f6,Ueg6,x6,([-2 2],[-2 2]),true);    plot(plt6)
+plttmp = NormalSoS.plotvectors(f6,x6,([-2 2],[-2 2]));    plot(plttmp)
+NormalSoS.checknorm(f6,Ueg6,x6)
 
 ## Example 7: From Papachristodolou and Prajna (2005)
 # Finds a reasonable landscape and gets close to orthogonality
