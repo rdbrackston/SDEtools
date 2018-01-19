@@ -15,6 +15,7 @@ f5 = F5(x5);
 plt5 = NormalSoS.plotlandscape(f5,Ueg5,x5,([-3 3],[-3 3]));    plot(plt5)
 NormalSoS.checknorm(f5,Ueg5,x5)
 
+
 ## Example 6: Fei's 10dof Michaelis-Menten enzyme dynamics model
 # Failed - memory requirements too large.
 @polyvar x6[1:10]
@@ -49,3 +50,15 @@ f8 = F8(x8);
 @time Ueg8 = NormalSoS.normdecomp(f8,x8, CSDPSolver(),1,4)
 plt8 = NormalSoS.plotlandscape(f8,Ueg8,x8,([-3 3],[-3 3]));    plot(plt8)
 NormalSoS.checknorm(f8,Ueg8,x8)
+
+
+## 8: From Papachristodolou and Prajna (2005)
+# Fails to find anything sensible - possibly due to limit cycle or unstable behaviour.
+a = 0.1;    b = 0.4;
+@polyvar x8[1:2]
+F8(x::Vector) = [a - x[1] + x[1]^2*x[2];
+                 b - x[1]^2*x[2]];
+f8 = F8(x8);
+@time Ueg8 = NormalSoS.normdecomp(f8,x8, CSDPSolver(),1,2)
+plt6 = NormalSoS.plotlandscape(f6,Ueg6,x6,([-2 2],[-2 2]),true);    plot(plt6)
+NormalSoS.checknorm(f6,Ueg6,x6)
