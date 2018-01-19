@@ -20,7 +20,7 @@ CSDP   - Faster than SCS but requires more iterations or higher order bounding
 F1(x::Vector) = [-x[1] + 2.0x[2]^2;
      -x[1]*x[2] - 2.0x[2]];
 f1 = F1(x1);
-@time Ueg1 = NormalSoS.normdecomp(f1,x1, MosekSolver(),1,2)
+@time Ueg1 = NormalSoS.normdecomp(f1,x1, MosekSolver(),0,2)
 plt1 = NormalSoS.plotlandscape(f1,Ueg1,x1,([-3 3],[-3 3]),true);    plot(plt1)
 NormalSoS.checknorm(f1,Ueg1,x1)
 plttmp = NormalSoS.plotvectors(f1,x1,([-3 3],[-3 3]));    plot(plttmp)
@@ -65,7 +65,7 @@ F5c(x::Vector) = [4d*λ*x[2]^3 + 4λ^2*x[1]^4*x[2]^3 - 4α*x[1]^2*x[2]^3 + 4β*�
                  -4d*λ*x[1]^3 + 2d*α*x[1] - d*β - 4λ^2*x[1]^3*x[2]^4 + 2α*λ*x[1]*x[2]^4 - β*λ*x[2]^4];
 f5 = F5(x5) + c*F5c(x5);
 Uan5 = (d + λ*x5[1]^4 - α*x5[1]^2 + β*x5[1])*(d + λ*x5[2]^4);
-@time Ueg5 = NormalSoS.normdecomp(f5,x5, CSDPSolver(),1,4,:minimal,Uan5)
+@time Ueg5 = NormalSoS.normdecomp(f5,x5, MosekSolver(),1,4,:minimal)#,Uan5)
 plt5 = NormalSoS.plotlandscape(f5,Ueg5,x5,([-3 3],[-3 3]),true);    plot(plt5)
 NormalSoS.checknorm(f5,Ueg5,x5)
 
@@ -79,7 +79,7 @@ F6(x::Vector) = [x[1] - x[1]^3 - γ*x[1]x[2]^2;
                  -μ*(x[1]^2 + 1)x[2]];
 f6 = F6(x6);
 Uan6 = -0.5*x6[1]^2 + 0.25*x6[1]^4 + 0.5γ*x6[2]^2 + 0.5γ*x6[1]^2*x6[2]^2;
-@time Ueg6 = NormalSoS.normdecomp(f6,x6, MosekSolver(),1,2,:minimal)#,Uan6)
+@time Ueg6 = NormalSoS.normdecomp(f6,x6, MosekSolver(),1,4,:minimal)
 plt6 = NormalSoS.plotlandscape(f6,Ueg6,x6,([-2 2],[-2 2]),true);    plot(plt6)
 NormalSoS.checknorm(f6,Ueg6,x6)
 

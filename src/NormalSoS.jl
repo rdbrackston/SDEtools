@@ -31,7 +31,8 @@ function normdecomp(f, x, SDPsolver=CSDPSolver(), nIters=1, o=2, basis=:minimal,
 
     # Perform the first optimisation
     if V==:auto
-        V = normopt1(f,x,Z,SDPsolver,o);
+        # V = normopt1(f,x,Z,SDPsolver,o);
+        V = normopt2(f,x,Z,SDPsolver,o);
     end
 
     # Now iterate to improve
@@ -45,7 +46,7 @@ function normdecomp(f, x, SDPsolver=CSDPSolver(), nIters=1, o=2, basis=:minimal,
         @polyvariable m V Z
 
         # Positive definiteness constraint
-        @polyconstraint m V ≥ ϵ*sum(x.^o);
+        @polyconstraint m V ≥ ϵ*sum(x.^2);
 
         # Apply matrix constraint, ∇U⋅g ≤ 0.
         Mv = [-dot(differentiate(V, x),f); differentiate(V,x)];
@@ -71,6 +72,7 @@ end
 
 
 function normopt1(f, x, basis, SDPsolver=CSDPSolver(), o=2)
+    # Single ϵ used for lower bound
 
     n = length(f);
 
@@ -97,16 +99,22 @@ end
 
 
 function normopt2(f, x, basis, SDPsolver=CSDPSolver(), o=2)
+    # Vector ϵ used for lower bound
 
     n = length(f);
 
     m = SOSModel(solver=SDPsolver);
-    @variable m ϵ[1:n]
 
     @polyvariable m V basis
 
     # Positive definiteness constraint
-    @polyconstraint m V ≥ ϵ[1]*x[1]^o+ϵ[2]*x[2]^o;
+    # @polyconstraint m V ≥ ϵ[1]*x[1]^o+ϵ[2]*x[2]^o;
+    bnd = monomials(x,[o], m -> exponents(m)[1]!=1 && exponents(m)[1]!=3);
+    b = length(bnd);
+    @variable m ϵ[1:b];
+    # for ii=1:b; @constraint m ϵ[ii] ≥ 0; end
+    @polyconstraint m V ≥ sum([ϵ[ii]*bnd[ii] for ii=1:length(bnd)])
+    @constraint m sum([ϵ[ii]*bnd[ii] for ii=1:length(bnd)]) ≥ 0
 
     # Apply matrix constraint, ∇U⋅g ≤ 0.
     I = NormalSoS.eye(x);
@@ -117,6 +125,7 @@ function normopt2(f, x, basis, SDPsolver=CSDPSolver(), o=2)
     @objective m Max sum(ϵ)
     status = solve(m);
 
+    @show getvalue(ϵ)
     return getvalue(V)
 
 end
