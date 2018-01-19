@@ -9,12 +9,10 @@ export normdecomp
 #  - Add plotting functions
 #  - Add function to check normality
 
-function normdecomp(f, x, SDPsolver=CSDPSolver(), nIters=1, o=2, basis=:minimal)
+function normdecomp(f, x, SDPsolver=CSDPSolver(), nIters=1, o=2, basis=:minimal,
+                    V::Union{DynamicPolynomials.Polynomial,Symbol}=:auto)
 
     n = length(f);
-
-    m1 = SOSModel(solver=SDPsolver);
-    @variable m1 ϵ
 
     # The Lyapunov function V(x):
     if basis == :minimal
@@ -27,54 +25,102 @@ function normdecomp(f, x, SDPsolver=CSDPSolver(), nIters=1, o=2, basis=:minimal)
     end
     print("Chosen basis as:", "\n")
     print(Z, "\n")
-    @polyvariable m1 V Z
+
+    # Apply matrix constraint, ∇U⋅g ≤ 0.
+    I = NormalSoS.eye(x);
+
+    # Perform the first optimisation
+    if V==:auto
+        V = normopt1(f,x,Z,SDPsolver,o);
+    end
+
+    # Now iterate to improve
+    for ii=1:nIters
+
+        U = V;
+
+        m = SOSModel(solver=SDPsolver);
+        @variable m ϵ
+        @variable m α
+        @polyvariable m V Z
+
+        # Positive definiteness constraint
+        @polyconstraint m V ≥ ϵ*sum(x.^o);
+
+        # Apply matrix constraint, ∇U⋅g ≤ 0.
+        Mv = [-dot(differentiate(V, x),f); differentiate(V,x)];
+        for ii=1:n; Mv = hcat(Mv, [differentiate(V,x)[ii];I[:,ii]]); end
+        @SDconstraint m Mv ⪰ 0 # Mv positive definite
+
+        # Wynn inequality constraint
+        @polyconstraint m dot(differentiate(V,x),f+2*differentiate(U,x)) ≥
+            α*dot(differentiate(U,x),f) + (1+α)*sum(differentiate(U,x).^2)
+
+        @constraint m α ≥ 0
+        @constraint m ϵ ≥ 0
+        @objective m Min α
+
+        status = solve(m);
+        V = getvalue(V);
+
+    end
+
+    return V
+
+end
+
+
+function normopt1(f, x, basis, SDPsolver=CSDPSolver(), o=2)
+
+    n = length(f);
+
+    m = SOSModel(solver=SDPsolver);
+    @variable m ϵ
+
+    @polyvariable m V basis
 
     # Positive definiteness constraint
-    @polyconstraint m1 V ≥ ϵ*sum(x.^o);
+    @polyconstraint m V ≥ ϵ*sum(x.^o);
 
     # Apply matrix constraint, ∇U⋅g ≤ 0.
     I = NormalSoS.eye(x);
     Mv = [-dot(differentiate(V, x),f); differentiate(V,x)];
     for ii=1:n; Mv = hcat(Mv, [differentiate(V,x)[ii];I[:,ii]]); end
-    @SDconstraint m1 Mv ⪰ 0 # Mv positive definite
+    @SDconstraint m Mv ⪰ 0 # Mv positive definite
 
-    @objective m1 Max ϵ
-
-    status = solve(m1);
-
-    # Now iterate to improve
-    for ii=1:nIters
-
-        U = getvalue(V);
-
-        m2 = SOSModel(solver=SDPsolver);
-        @variable m2 ϵ
-        @variable m2 α
-        @polyvariable m2 V Z
-
-        # Positive definiteness constraint
-        @polyconstraint m2 V ≥ ϵ*sum(x.^o);
-
-        # Apply matrix constraint, ∇U⋅g ≤ 0.
-        Mv = [-dot(differentiate(V, x),f); differentiate(V,x)];
-        for ii=1:n; Mv = hcat(Mv, [differentiate(V,x)[ii];I[:,ii]]); end
-        @SDconstraint m2 Mv ⪰ 0 # Mv positive definite
-
-        # Wynn inequality constraint
-        @polyconstraint m2 dot(differentiate(V,x),f+2*differentiate(U,x)) ≥
-            α*dot(differentiate(U,x),f) + (1+α)*sum(differentiate(U,x).^2)
-
-        @constraint m2 α ≥ 0
-        @constraint m2 ϵ ≥ 0
-        @objective m2 Min α
-
-        status = solve(m2);
-
-    end
+    @objective m Max ϵ
+    status = solve(m);
 
     return getvalue(V)
 
 end
+
+
+function normopt2(f, x, basis, SDPsolver=CSDPSolver(), o=2)
+
+    n = length(f);
+
+    m = SOSModel(solver=SDPsolver);
+    @variable m ϵ[1:n]
+
+    @polyvariable m V basis
+
+    # Positive definiteness constraint
+    @polyconstraint m V ≥ ϵ[1]*x[1]^o+ϵ[2]*x[2]^o;
+
+    # Apply matrix constraint, ∇U⋅g ≤ 0.
+    I = NormalSoS.eye(x);
+    Mv = [-dot(differentiate(V, x),f); differentiate(V,x)];
+    for ii=1:n; Mv = hcat(Mv, [differentiate(V,x)[ii];I[:,ii]]); end
+    @SDconstraint m Mv ⪰ 0 # Mv positive definite
+
+    @objective m Max sum(ϵ)
+    status = solve(m);
+
+    return getvalue(V)
+
+end
+
 
 function minimalbasis(f,x)
 
