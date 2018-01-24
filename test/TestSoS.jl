@@ -79,18 +79,20 @@ F6(x::Vector) = [x[1] - x[1]^3 - γ*x[1]x[2]^2;
                  -μ*(x[1]^2 + 1)x[2]];
 f6 = F6(x6);
 Uan6 = -0.5*x6[1]^2 + 0.25*x6[1]^4 + 0.5γ*x6[2]^2 + 0.5γ*x6[1]^2*x6[2]^2;
+basis = NormalSoS.minimalbasis(f6,x6);    Ueg6 = NormalSoS.normopt2(f6,x6,basis,MosekSolver(),4)
 @time Ueg6 = NormalSoS.normdecomp(f6,x6, MosekSolver(),1,4,:minimal)
 plt6 = NormalSoS.plotlandscape(f6,Ueg6,x6,([-2 2],[-2 2]),true);    plot(plt6)
 NormalSoS.checknorm(f6,Ueg6,x6)
 
 ## Example 7: From Papachristodolou and Prajna (2005)
-# Finds a reasonable landscape and gets close to orthogonality
+# Finds a reasonable landscape and gets very close to orthogonality
 @polyvar x7[1:4]
 F7(x::Vector) = [-x[1] + x[2]^3 - 3*x[3]*x[4];
                  -x[1] - x[2]^3;
                  x[1]*x[4] - x[3];
                  x[1]*x[3] - x[4]^3];
 f7 = F7(x7);
+basis = NormalSoS.minimalbasis(f7,x7);    Ueg7 = NormalSoS.normopt2(f7,x7,basis,MosekSolver(),4)
 @time Ueg7 = NormalSoS.normdecomp(f7,x7, MosekSolver(),1,4)
 plt7 = NormalSoS.plotlandscape(f7,Ueg7,x7,([-3 3],[-3 3]), false);    plot(plt7)
 NormalSoS.checknorm(f7,Ueg7,x7)
