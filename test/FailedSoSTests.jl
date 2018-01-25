@@ -11,8 +11,24 @@ F5(x::Vector) = [-h1*x[1]x[2] + h2*x[3];
      h1*x[1]x[2] - (h2+h3)x[3];
      h3*x[3]];
 f5 = F5(x5);
+basis = NormalSoS.minimalbasis(f5,x5);    Ueg5 = NormalSoS.normopt2(f5,x5,basis,MosekSolver(),4)
 @time Ueg5 = NormalSoS.normdecomp(f5,x5, MosekSolver(),1,4)
 plt5 = NormalSoS.plotlandscape(f5,Ueg5,x5,([-3 3],[-3 3]));    plot(plt5)
+NormalSoS.checknorm(f5,Ueg5,x5)
+
+
+## Example 5: More comlicated two-dimensional bistable system with curl dynamics
+α = 0.5;    λ = 0.5α;    β = -0.05;    c = 0.5;    d = 1.0;
+@polyvar x5[1:2]
+F5(x::Vector) = [-4d*λ*x[1]^3 + 2d*α*x[1] - d*β - 4λ^2*x[1]^3*x[2]^4 + 2α*λ*x[1]*x[2]^4 - β*λ*x[2]^4;
+                 -4d*λ*x[2]^3 - 4λ^2*x[1]^4*x[2]^3 + 4α*x[1]^2*x[2]^3 - 4β*λ*x[1]*x[2]^3];
+F5c(x::Vector) = [4d*λ*x[2]^3 + 4λ^2*x[1]^4*x[2]^3 - 4α*x[1]^2*x[2]^3 + 4β*λ*x[1]*x[2]^3;
+                 -4d*λ*x[1]^3 + 2d*α*x[1] - d*β - 4λ^2*x[1]^3*x[2]^4 + 2α*λ*x[1]*x[2]^4 - β*λ*x[2]^4];
+f5 = F5(x5) + c*F5c(x5);
+Uan5 = (d + λ*x5[1]^4 - α*x5[1]^2 + β*x5[1])*(d + λ*x5[2]^4);
+basis = NormalSoS.minimalbasis(f5,x5);    Ueg5 = NormalSoS.normopt2(f5,x5,basis,MosekSolver(),4)
+@time Ueg5 = NormalSoS.normdecomp(f5,x5, MosekSolver(),1,4,:minimal)#,Uan5)
+plt5 = NormalSoS.plotlandscape(f5,Ueg5,x5,([-3 3],[-3 3]),false);    plot(plt5)
 NormalSoS.checknorm(f5,Ueg5,x5)
 
 
@@ -62,3 +78,11 @@ f8 = F8(x8);
 @time Ueg8 = NormalSoS.normdecomp(f8,x8, CSDPSolver(),1,2)
 plt6 = NormalSoS.plotlandscape(f6,Ueg6,x6,([-2 2],[-2 2]),true);    plot(plt6)
 NormalSoS.checknorm(f6,Ueg6,x6)
+
+
+# Old positive definiteness constraints
+# @polyconstraint m V ≥ ϵ[1]*x[1]^o+ϵ[2]*x[2]^o;
+# bnd = monomials(x,collect(2:2:o), m -> exponents(m)[1]!=1 && exponents(m)[1]!=3);
+# bnd = monomials(x,collect(2:2:o), m -> exponents(m)[1]==0 || exponents(m)[2]==0)
+# bnd = monomials(x,[o], m -> exponents(m)[1]!=1 && exponents(m)[1]!=3);
+# bnd = monomials(x,[o], m -> exponents(m)[1]==0 || exponents(m)[2]==0);

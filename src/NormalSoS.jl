@@ -32,7 +32,7 @@ function normdecomp(f, x, SDPsolver=CSDPSolver(), nIters=1, o=2, basis=:minimal,
     # Perform the first optimisation
     if V==:auto
         # V = normopt1(f,x,Z,SDPsolver,o);
-        V = normopt2(f,x,Z,SDPsolver,o);
+        V = normopt2(f,x,Z,SDPsolver);
     end
 
     # Now iterate to improve
@@ -93,12 +93,15 @@ function normopt1(f, x, basis, SDPsolver=CSDPSolver(), o=2)
     @objective m Max ϵ
     status = solve(m);
 
+    @show status
+    @show sum(x.^o)
+    @show getvalue(ϵ)
     return getvalue(V)
 
 end
 
 
-function normopt2(f, x, basis, SDPsolver=CSDPSolver(), o=2)
+function normopt2(f, x, basis, SDPsolver=CSDPSolver())
     # Vector ϵ used for lower bound
 
     n = length(f);
@@ -107,17 +110,36 @@ function normopt2(f, x, basis, SDPsolver=CSDPSolver(), o=2)
 
     @polyvariable m V basis
 
-    # Positive definiteness constraint
-    # @polyconstraint m V ≥ ϵ[1]*x[1]^o+ϵ[2]*x[2]^o;
-    # bnd = monomials(x,collect(2:2:o), m -> exponents(m)[1]!=1 && exponents(m)[1]!=3);
-    # bnd = monomials(x,collect(2:2:o), m -> exponents(m)[1]==0 || exponents(m)[2]==0)
-    bnd = monomials(x,[o], m -> exponents(m)[1]!=1 && exponents(m)[1]!=3);
-    @show bnd
-    b = length(bnd);
+    # Specify the lower bounding polynomial, bnd
+    o = zeros(Int,1,n)
+    o[1] = maximum([degree(Vi,x[1]) for Vi in basis])
+    bnd = x[1]^o[1];
+    if n>1
+        # First add the maximum even order polynomial for each x[ii]
+        for ii=2:n;
+            o[ii] = maximum([degree(Vi,x[ii]) for Vi in basis])
+            if o[ii]%2==0
+                bnd += x[ii]^o[ii];
+            end
+        end
+        # Now add any fully even terms of mixed x[ii], e.g. x[1]^2*x[2]^2
+        for bi in basis
+            e = exponents(bi);
+            if all(y->y==e[1]&&e[1]%2==0, e) && e[1]!=0
+                bnd += bi
+            end
+        end
+        b = length(bnd);
+    else
+        b = 1;
+        bnd = [bnd];
+    end
+
+    # Positive definitness constraint on V
     @variable m ϵ[1:b];
-    # for ii=1:b; @constraint m ϵ[ii] ≥ 0; end
-    @polyconstraint m V ≥ sum([ϵ[ii]*bnd[ii] for ii=1:length(bnd)])
-    @constraint m sum([ϵ[ii]*bnd[ii] for ii=1:length(bnd)]) ≥ 0
+    for ii=1:b; @constraint m ϵ[ii] ≥ 0; end
+    # @constraint m sum([ϵ[ii]*bnd[ii] for ii=1:length(bnd)]) ≥ 0
+    @polyconstraint m V ≥ sum([ϵ[ii]*bnd[ii] for ii=1:b])
 
     # Apply matrix constraint, ∇U⋅g ≤ 0.
     I = NormalSoS.eye(x);
@@ -128,6 +150,8 @@ function normopt2(f, x, basis, SDPsolver=CSDPSolver(), o=2)
     @objective m Max sum(ϵ)
     status = solve(m);
 
+    @show status
+    @show bnd
     @show getvalue(ϵ)
     return getvalue(V)
 
