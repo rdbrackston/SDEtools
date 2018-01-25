@@ -109,7 +109,10 @@ function normopt2(f, x, basis, SDPsolver=CSDPSolver(), o=2)
 
     # Positive definiteness constraint
     # @polyconstraint m V ≥ ϵ[1]*x[1]^o+ϵ[2]*x[2]^o;
+    # bnd = monomials(x,collect(2:2:o), m -> exponents(m)[1]!=1 && exponents(m)[1]!=3);
+    # bnd = monomials(x,collect(2:2:o), m -> exponents(m)[1]==0 || exponents(m)[2]==0)
     bnd = monomials(x,[o], m -> exponents(m)[1]!=1 && exponents(m)[1]!=3);
+    @show bnd
     b = length(bnd);
     @variable m ϵ[1:b];
     # for ii=1:b; @constraint m ϵ[ii] ≥ 0; end

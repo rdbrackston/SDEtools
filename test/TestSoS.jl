@@ -1,7 +1,7 @@
 # Run a series of tests of the NormDecomp function
 
 using SumOfSquares, JuMP, PolyJuMP, DynamicPolynomials, MultivariatePolynomials
-using SCS, Mosek, CSDP
+using Mosek, CSDP#, SCS
 using Plots
 gr()
 
@@ -31,7 +31,8 @@ plttmp = NormalSoS.plotvectors(f1,x1,([-3 3],[-3 3]));    plot(plttmp)
 F2(x::Vector) = [-1.0 + 9.0x[1] - 2.0x[1]^3 + 9.0x[2] - 2.0x[2]^3;
       1.0 - 11.0x[1] + 2.0x[1]^3 + 11.0x[2] - 2.0x[2]^3];
 f2 = F2(x2);
-@time Ueg2 = NormalSoS.normdecomp(f2,x2, MosekSolver(),1,4)
+basis = NormalSoS.minimalbasis(f2,x2);    Ueg2 = NormalSoS.normopt2(f2,x2,basis,CSDPSolver(),4)
+@time Ueg2 = NormalSoS.normdecomp(f2,x2, CSDPSolver(),1,4)
 plt2 = NormalSoS.plotlandscape(f2,Ueg2,x2,([-3 3],[-3 3]),true);    plot(plt2)
 NormalSoS.checknorm(f2,Ueg2,x2)
 
@@ -65,8 +66,9 @@ F5c(x::Vector) = [4d*λ*x[2]^3 + 4λ^2*x[1]^4*x[2]^3 - 4α*x[1]^2*x[2]^3 + 4β*�
                  -4d*λ*x[1]^3 + 2d*α*x[1] - d*β - 4λ^2*x[1]^3*x[2]^4 + 2α*λ*x[1]*x[2]^4 - β*λ*x[2]^4];
 f5 = F5(x5) + c*F5c(x5);
 Uan5 = (d + λ*x5[1]^4 - α*x5[1]^2 + β*x5[1])*(d + λ*x5[2]^4);
+basis = NormalSoS.minimalbasis(f5,x5);    Ueg5 = NormalSoS.normopt1(f5,x5,basis,MosekSolver(),4)
 @time Ueg5 = NormalSoS.normdecomp(f5,x5, MosekSolver(),1,4,:minimal)#,Uan5)
-plt5 = NormalSoS.plotlandscape(f5,Ueg5,x5,([-3 3],[-3 3]),true);    plot(plt5)
+plt5 = NormalSoS.plotlandscape(f5,Ueg5,x5,([-3 3],[-3 3]),false);    plot(plt5)
 NormalSoS.checknorm(f5,Ueg5,x5)
 
 
@@ -79,8 +81,8 @@ F6(x::Vector) = [x[1] - x[1]^3 - γ*x[1]x[2]^2;
                  -μ*(x[1]^2 + 1)x[2]];
 f6 = F6(x6);
 Uan6 = -0.5*x6[1]^2 + 0.25*x6[1]^4 + 0.5γ*x6[2]^2 + 0.5γ*x6[1]^2*x6[2]^2;
-basis = NormalSoS.minimalbasis(f6,x6);    Ueg6 = NormalSoS.normopt2(f6,x6,basis,MosekSolver(),4)
-@time Ueg6 = NormalSoS.normdecomp(f6,x6, MosekSolver(),1,4,:minimal)
+basis = NormalSoS.minimalbasis(f6,x6);    Ueg6 = NormalSoS.normopt2(f6,x6,basis,CSDPSolver(),4)
+@time Ueg6 = NormalSoS.normdecomp(f6,x6, CSDPSolver(),1,4,:minimal)
 plt6 = NormalSoS.plotlandscape(f6,Ueg6,x6,([-2 2],[-2 2]),true);    plot(plt6)
 NormalSoS.checknorm(f6,Ueg6,x6)
 
