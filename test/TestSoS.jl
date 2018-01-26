@@ -20,7 +20,7 @@ CSDP   - Faster than SCS but requires more iterations or higher order bounding
 F1(x::Vector) = [-x[1] + 2.0x[2]^2;
      -x[1]*x[2] - 2.0x[2]];
 f1 = F1(x1);
-@time Ueg1 = NormalSoS.normdecomp(f1,x1, MosekSolver(),0,2)
+@time Ueg1 = NormalSoS.normdecomp(f1,x1, MosekSolver(),0)
 plt1 = NormalSoS.plotlandscape(f1,Ueg1,x1,([-3 3],[-3 3]),true);    plot(plt1)
 NormalSoS.checknorm(f1,Ueg1,x1)
 plttmp = NormalSoS.plotvectors(f1,x1,([-3 3],[-3 3]));    plot(plttmp)
@@ -32,7 +32,7 @@ F2(x::Vector) = [-1.0 + 9.0x[1] - 2.0x[1]^3 + 9.0x[2] - 2.0x[2]^3;
       1.0 - 11.0x[1] + 2.0x[1]^3 + 11.0x[2] - 2.0x[2]^3];
 f2 = F2(x2);
 basis = NormalSoS.minimalbasis(f2,x2);    Ueg2 = NormalSoS.normopt2(f2,x2,basis,MosekSolver())
-@time Ueg2 = NormalSoS.normdecomp(f2,x2, MosekSolver(),1,4)
+@time Ueg2 = NormalSoS.normdecomp(f2,x2, MosekSolver(),1)
 plt2 = NormalSoS.plotlandscape(f2,Ueg2,x2,([-3 3],[-3 3]),true);    plot(plt2)
 NormalSoS.checknorm(f2,Ueg2,x2)
 
@@ -41,7 +41,7 @@ NormalSoS.checknorm(f2,Ueg2,x2)
 @polyvar x3;    x3 = [x3];
 F3(x::Vector) = [x[1] - x[1]^3 + 0.1];
 f3 = F3(x3);
-@time Ueg3 = NormalSoS.normdecomp(f3,x3, MosekSolver(),1,4)
+@time Ueg3 = NormalSoS.normdecomp(f3,x3, MosekSolver(),1)
 NormalSoS.checknorm(f3,Ueg3,x3)
 
 
@@ -52,12 +52,23 @@ F4(x::Vector) = [2α*x[1] - 4λ*x[1]^3 - β + 4c*λ*x[2]^3;
      2c*α*x[1] - 4c*λ*x[1]^3 - c*β - 4λ*x[2]^3];
 f4 = F4(x4);
 Uan4 = λ*(x4[1]^4+x4[2]^4) - α*x4[1]^2 + β*x4[1];
-@time Ueg4 = NormalSoS.normdecomp(f4,x4, MosekSolver(),1,4)
+@time Ueg4 = NormalSoS.normdecomp(f4,x4, MosekSolver(),1)
 plt4 = NormalSoS.plotlandscape(f4,Ueg4,x4,([-3 3],[-3 3]),true);    plot(plt4)
 NormalSoS.checknorm(f4,Ueg4,x4)
 
 
-## Example 5: TBC
+## Example 5: Three-dimensional bistable system
+α = 0.5;    λ = 0.5α;    β = -0.05;    c = 0.0;
+@polyvar x5[1:4]
+F5(x::Vector) = [2α*x[1] - 4λ*x[1]^3 - β;
+                 -4λ*x[2]^3;
+                 -4λ*x[3]^3;
+                 -4λ*x[4]^3];
+f5 = F5(x5);
+# Uan4 = λ*(x4[1]^4+x4[2]^4) - α*x4[1]^2 + β*x4[1];
+@time Ueg5 = NormalSoS.normdecomp(f5,x5, MosekSolver(),0)
+plt5 = NormalSoS.plotlandscape(f5,Ueg5,x5,([-3 3],[-3 3]),false);    plot(plt5)
+NormalSoS.checknorm(f5,Ueg5,x5)
 
 
 ## Example 6: The Maier-Stein Model
@@ -70,7 +81,7 @@ F6(x::Vector) = [x[1] - x[1]^3 - γ*x[1]x[2]^2;
 f6 = F6(x6);
 Uan6 = -0.5*x6[1]^2 + 0.25*x6[1]^4 + 0.5γ*x6[2]^2 + 0.5γ*x6[1]^2*x6[2]^2;
 basis = NormalSoS.minimalbasis(f6,x6);    Ueg6 = NormalSoS.normopt2(f6,x6,basis,MosekSolver())
-@time Ueg6 = NormalSoS.normdecomp(f6,x6, MosekSolver(),1,4,:minimal)
+@time Ueg6 = NormalSoS.normdecomp(f6,x6, MosekSolver(),1)
 plt6 = NormalSoS.plotlandscape(f6,Ueg6,x6,([-2 2],[-2 2]),true);    plot(plt6)
 NormalSoS.checknorm(f6,Ueg6,x6)
 
