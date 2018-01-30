@@ -23,7 +23,6 @@ f1 = F1(x1);
 @time Ueg1 = NormalSoS.normdecomp(f1,x1, MosekSolver(),0)
 plt1 = NormalSoS.plotlandscape(f1,Ueg1,x1,([-3 3],[-3 3]),true);    plot(plt1)
 NormalSoS.checknorm(f1,Ueg1,x1)
-plttmp = NormalSoS.plotvectors(f1,x1,([-3 3],[-3 3]));    plot(plttmp)
 
 
 ## Example 2: Quartic system from Zhou et al (2012) - Y
@@ -59,11 +58,10 @@ NormalSoS.checknorm(f4,Ueg4,x4)
 
 ## Example 5: Three-dimensional bistable system
 α = 0.5;    λ = 0.5α;    β = -0.05;    c = 0.0;
-@polyvar x5[1:4]
+@polyvar x5[1:3]
 F5(x::Vector) = [2α*x[1] - 4λ*x[1]^3 - β;
                  -4λ*x[2]^3;
-                 -4λ*x[3]^3;
-                 -4λ*x[4]^3];
+                 -4λ*x[3]^3];
 f5 = F5(x5);
 # Uan4 = λ*(x4[1]^4+x4[2]^4) - α*x4[1]^2 + β*x4[1];
 @time Ueg5 = NormalSoS.normdecomp(f5,x5, MosekSolver(),0)
