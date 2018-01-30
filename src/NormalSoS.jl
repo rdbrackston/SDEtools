@@ -158,6 +158,30 @@ function normopt2(f, x, basis, SDPsolver=CSDPSolver())
 end
 
 
+function lyapunov(f, x, SDPsolver=CSDPSolver(), o=2)
+
+    n = length(f);
+
+    m = SOSModel(solver=SDPsolver);
+    @variable m ϵ
+    @polyvariable m V monomials(x,o);
+
+    # Positive definiteness constraint
+    @polyconstraint m V ≥ ϵ*sum(x.^2);
+    @constraint m ϵ ≥ 0
+    @objective m Max ϵ
+
+    # Standard Lyapunov constraint
+    @constraint m -dot(differentiate(V, x),f) ≥ 0;
+
+    status = solve(m)
+    @show status
+    @show getvalue(ϵ)
+    return getvalue(V)
+
+end
+
+
 function minimalbasis(f,x)
 
     basis = 1.0;
