@@ -85,6 +85,7 @@ basis = NormalSoS.minimalbasis(f6,x6);    Ueg6 = NormalSoS.normopt2(f6,x6,basis,
 plt6 = NormalSoS.plotlandscape(f6,Ueg6,x6,([-2 2],[-2 2]),true);    plot(plt6)
 NormalSoS.checknorm(f6,Ueg6,x6)
 
+
 ## Example 7: From Papachristodolou and Prajna (2005)
 # Finds a reasonable landscape and gets very close to orthogonality
 @polyvar x7[1:4]
@@ -97,3 +98,16 @@ basis = NormalSoS.minimalbasis(f7,x7);    Ueg7 = NormalSoS.normopt2(f7,x7,basis,
 @time Ueg7 = NormalSoS.normdecomp(f7,x7, MosekSolver(),1)
 plt7 = NormalSoS.plotlandscape(f7,Ueg7,x7,([-3 3],[-3 3]), false);    plot(plt7)
 NormalSoS.checknorm(f7,Ueg7,x7)
+
+
+## Example 8: Brusselator reaction
+A = 0.0;    B = 0.5 + A^2;
+@polyvar x8[1:2]
+F8(x::Vector) = [A + x[1]^2*x[2] - B*x[1] - x[1];
+                 B*x[1] - x[1]^2*x[2]];
+f8 = F8(x8);
+Ueg8 = NormalSoS.lyapunov(f8,x8,MosekSolver(),4)
+basis = NormalSoS.minimalbasis(f8,x8);    Ueg8 = NormalSoS.normopt1(f8,x8,basis,MosekSolver(),4)
+@time Ueg8 = NormalSoS.normdecomp(f8,x8, MosekSolver(),0)
+plt8 = NormalSoS.plotlandscape(f8,Ueg8,x8,([-3 3],[-3 3]), true);    plot(plt8)
+NormalSoS.checknorm(f8,Ueg8,x8)
