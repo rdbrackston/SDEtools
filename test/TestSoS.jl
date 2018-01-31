@@ -106,6 +106,6 @@ F8(x::Vector) = [A + x[1]^2*x[2] - B*x[1] - x[1];
 f8 = F8(x8);
 Ueg8 = NormalSoS.lyapunov(f8,x8,MosekSolver(),4)
 basis = NormalSoS.minimalbasis(f8,x8);    Ueg8 = NormalSoS.normopt1(f8,x8,basis,MosekSolver(),4)
-@time Ueg8 = NormalSoS.normdecomp(f8,x8, MosekSolver(),0)
+@time Ueg8 = NormalSoS.normdecomp(f8,x8, MosekSolver(),1,2,:minimal,Ueg8)
 plt8 = NormalSoS.plotlandscape(f8,Ueg8,x8,([-3 3],[-3 3]), true);    plot(plt8)
 NormalSoS.checknorm(f8,Ueg8,x8)

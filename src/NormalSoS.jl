@@ -112,15 +112,13 @@ function normopt2(f, x, basis, SDPsolver=CSDPSolver())
 
     # Specify the lower bounding polynomial, bnd
     o = zeros(Int,1,n)
-    o[1] = maximum([degree(Vi,x[1]) for Vi in basis])
-    bnd = x[1]^o[1];
+    # o[1] = maximum([degree(Vi,x[1]) for Vi in basis])
     if n>1
+        bnd = x[1];    # Initialise the type of bnd
         # First add the maximum even order polynomial for each x[ii]
-        for ii=2:n;
-            o[ii] = maximum([degree(Vi,x[ii]) for Vi in basis])
-            if o[ii]%2==0
-                bnd += x[ii]^o[ii];
-            end
+        for ii=1:n;
+            o[ii] = maximum(filter(iseven,[degree(Vi,x[ii]) for Vi in basis]))
+            bnd += x[ii]^o[ii];
         end
         # Now add any fully even terms of mixed x[ii], e.g. x[1]^2*x[2]^2
         for bi in basis
@@ -129,9 +127,12 @@ function normopt2(f, x, basis, SDPsolver=CSDPSolver())
                 bnd += bi
             end
         end
+        bnd -= x[1];
         b = length(bnd);
     else
         b = 1;
+        o[1] = maximum([degree(Vi,x[1]) for Vi in basis])
+        bnd = x[1]^o[1];
         bnd = [bnd];
     end
 
