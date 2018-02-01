@@ -159,7 +159,7 @@ function normopt2(f, x, basis, SDPsolver=CSDPSolver())
 end
 
 
-function lyapunov(f, x, SDPsolver=CSDPSolver(), o=2)
+function lyapunov(f, x, SDPsolver=CSDPSolver(), o=2, nonneg=false)
 
     n = length(f);
 
@@ -173,7 +173,17 @@ function lyapunov(f, x, SDPsolver=CSDPSolver(), o=2)
     @objective m Max ϵ
 
     # Standard Lyapunov constraint
-    @constraint m -dot(differentiate(V, x),f) ≥ 0;
+    P = -dot(differentiate(V, x),f);
+
+    if nonneg
+        s = @set 0 ≤ x[1]
+        for ii=2:n
+            s = @set 0 ≤ x[ii] && s;
+        end
+        @constraint(m, P ≥ 0, domain=s)
+    else
+        @constraint m P ≥ 0;
+    end
 
     status = solve(m)
     @show status
