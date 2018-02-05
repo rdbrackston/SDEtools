@@ -9,6 +9,11 @@ export normdecomp
 #  - Add plotting functions
 #  - Add function to check normality
 
+
+"""
+Performs a two stage optimisation to try and obtain a Lyapunov function
+satisfying the normal decomposition.
+"""
 function normdecomp(f, x, SDPsolver=CSDPSolver(), nIters=1, o=2, basis=:minimal,
                     V::Union{DynamicPolynomials.Polynomial,Symbol}=:auto)
 
@@ -71,6 +76,10 @@ function normdecomp(f, x, SDPsolver=CSDPSolver(), nIters=1, o=2, basis=:minimal,
 end
 
 
+"""
+Obtains a Lyapunov function coming close to orthogonality. Uses a simple
+lower bounding polynomial and maximises a single coefficient.
+"""
 function normopt1(f, x, basis, SDPsolver=CSDPSolver(), o=2)
     # Single ϵ used for lower bound
 
@@ -101,6 +110,10 @@ function normopt1(f, x, basis, SDPsolver=CSDPSolver(), o=2)
 end
 
 
+"""
+Obtains a Lyapunov function coming close to orthogonality. Computes a suitable
+lower bounding polynomial and maximises the sum of the coefficients.
+"""
 function normopt2(f, x, basis, SDPsolver=CSDPSolver())
     # Vector ϵ used for lower bound
 
@@ -198,6 +211,10 @@ function lyapunov(f, x, SDPsolver=CSDPSolver(), o=2, nonneg=false)
 end
 
 
+"""
+A minimal working example to obtain a Lyapunov function. Originally made for the
+question in julia discourse.
+"""
 function minlyapunov(f,x)
 
     n = length(x);
@@ -224,6 +241,9 @@ function minlyapunov(f,x)
 end
 
 
+"""
+Obtain a minimal basis for V, based on the terms required to form f.
+"""
 function minimalbasis(f,x)
 
     basis = 1.0;
@@ -242,6 +262,10 @@ function minimalbasis(f,x)
 
 end
 
+
+"""
+Return the identity matrix of the same dimension and Type as x.
+"""
 function eye(x)
     n = length(x);
     v = [1.0+0.0x[1]];
@@ -251,6 +275,11 @@ function eye(x)
     return diagm(v)
 end
 
+
+"""
+Plot the first two dimensions of the landscape U. A quiver plot of the vector
+field f may optionally be included.
+"""
 function plotlandscape(f, U, x, lims, vectors=false, scl=0.05)
 
     Ng = 100;
@@ -292,6 +321,10 @@ function plotlandscape(f, U, x, lims, vectors=false, scl=0.05)
 
 end
 
+
+"""
+Generate a quiver plot of the vector field f.
+"""
 function plotvectors(f, x, lims, scl=0.05)
 
     Ng = 100;
@@ -312,6 +345,10 @@ function plotvectors(f, x, lims, scl=0.05)
 
 end
 
+
+"""
+Generate a metric that quantifies the orthogonality of fᵤ with ∇U.
+"""
 function checknorm(f, U, x)
 
     # Evaluate ∇U
