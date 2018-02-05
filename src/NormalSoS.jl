@@ -159,35 +159,66 @@ function normopt2(f, x, basis, SDPsolver=CSDPSolver())
 end
 
 
+"""
+A basic function to obtain a Lyapunov function for ODE f. The function can be
+applied only for positive x, e.g. for a system describing a chemical reaction
+network.
+"""
 function lyapunov(f, x, SDPsolver=CSDPSolver(), o=2, nonneg=false)
 
     n = length(f);
 
     m = SOSModel(solver=SDPsolver);
-    @variable m ϵ
+    # @variable m ϵ
     @polyvariable m V monomials(x,o);
 
     # Positive definiteness constraint
-    @polyconstraint m V ≥ ϵ*sum(x.^2);
-    @constraint m ϵ ≥ 0
-    @objective m Max ϵ
+    @polyconstraint m V ≥ sum(x.^2);
+    # @constraint m ϵ ≥ 0
+    # @objective m Max ϵ
 
     # Standard Lyapunov constraint
-    P = -dot(differentiate(V, x),f);
+    P = dot(differentiate(V, x),f);
 
     if nonneg
         s = @set 0 ≤ x[1]
         for ii=2:n
             s = @set 0 ≤ x[ii] && s;
         end
-        @constraint(m, P ≥ 0, domain=s)
+        @constraint(m, P ≤ 0, domain=s)
     else
-        @constraint m P ≥ 0;
+        @constraint m P ≤ 0;
     end
 
     status = solve(m)
     @show status
-    @show getvalue(ϵ)
+    # @show getvalue(ϵ)
+    return getvalue(V)
+
+end
+
+
+function minlyapunov(f,x)
+
+    n = length(x);
+
+    m = SOSModel(solver=CSDPSolver());
+    @variable m ϵ
+    @polyvariable m V monomials(x,2);
+
+    # Positive definiteness constraint
+    @polyconstraint m V ≥ ϵ*sum(x.^2);
+    @constraint m ϵ ≥ 0
+
+    # Apply matrix constraint, ∇U⋅fᵥ ≤ 0.
+    I = NormalSoS.eye(x);
+    Mv = [-dot(differentiate(V, x),f); differentiate(V,x)];
+    for ii=1:n; Mv = hcat(Mv, [differentiate(V,x)[ii];I[:,ii]]); end
+    @SDconstraint m Mv ⪰ 0 # Mv positive definite
+
+    status = solve(m);
+    @show(status)
+
     return getvalue(V)
 
 end
