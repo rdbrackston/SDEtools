@@ -19,6 +19,10 @@ struct OptimisationTracker <: Tracker
     convergences::AbstractArray{Bool};
 end
 
+
+"""
+Update the tracker object by appending data to each of the arrays.
+"""
 function updatetracker!(trackerObj::OptimisationTracker,
                         tVal::AbstractFloat, optStruct)
 
@@ -28,7 +32,11 @@ function updatetracker!(trackerObj::OptimisationTracker,
     push!(trackerObj.convergences,Optim.converged(optStruct));
 end
 
-# Function to generate the initial path
+
+"""
+Generate an initial path as a discretised straight line of N points throught the
+multidimensional state space.
+"""
 function makepath(X₀::AbstractArray, Xₑ::AbstractArray, N::Int64)
 
     n = length(X₀);
@@ -47,7 +55,10 @@ function makepath(X₀::AbstractArray, Xₑ::AbstractArray, N::Int64)
     return φ₀
 end
 
-# Define the action functional
+
+"""
+Evaluate the action functional for a given discretised path φ and time step dt.
+"""
 function action(φ::AbstractArray,
            f::Function, g::Function,
            X₀::AbstractArray, Xₑ::AbstractArray,
@@ -72,7 +83,11 @@ function action(φ::AbstractArray,
     return 0.5*action
 end
 
-# Analytical gradient of the action functional
+
+"""
+Evaluate the analytical gradient of the action functional with respect to each
+of the points along the discretised path φ.
+"""
 function actiongradient!(store::AbstractArray, φ::AbstractArray,
                          f::Function, g::Function,
                          X₀::AbstractArray, Xₑ::AbstractArray,
@@ -138,6 +153,11 @@ function actiongradient!(store::AbstractArray, φ::AbstractArray,
     end
 end
 
+
+"""
+Perform the gradient-based optimisation over the discretised path for a given
+time τ.
+"""
 function optimalpath(f::Function, g::Function,
                      x₀::AbstractArray, xₑ::AbstractArray,
                      τ::Real, N::Signed,
@@ -182,6 +202,11 @@ function optimalpath(f::Function, g::Function,
     return OptStruct
 end
 
+
+"""
+Perform the line search optimisation over the time duration of the path,
+performing an independent path optimation for each time.
+"""
 function optimaltime!(trackerObj::OptimisationTracker,
                       f::Function, g::Function,
                       x₀::AbstractArray, xₑ::AbstractArray,
