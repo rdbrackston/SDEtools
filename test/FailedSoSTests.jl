@@ -10,7 +10,7 @@ F5(x::Vector) = [-h1*x[1]x[2] + h2*x[3];
      h1*x[1]x[2] - (h2+h3)x[3];
      h3*x[3]];
 f5 = F5(x5);
-Ueg5 = NormalSoS.lyapunov(f5,x5,MosekSolver(),2,true)
+Ueg5 = NormalSoS.minlyapunov(f5,x5) #,MosekSolver(),2,true)
 basis = NormalSoS.minimalbasis(f5,x5);    Ueg5 = NormalSoS.normopt2(f5,x5,basis,MosekSolver(),4)
 @time Ueg5 = NormalSoS.normdecomp(f5,x5, MosekSolver(),1,4)
 plt5 = NormalSoS.plotlandscape(f5,Ueg5,x5,([0 3],[0 3]));    plot(plt5)
