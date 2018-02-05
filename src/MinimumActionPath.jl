@@ -1,8 +1,6 @@
 module MAP
 
 #  Possible future modifications
-#  - Evaluate gMAM, the geometric, time-independent action function
-#  - Include non-gradient optimisation methods, e.g. GA, simulated annelaing
 #  - Parametrise paths in terms of fewer points and use splines to interpolate (Interpolations.jl)
 #  - Consider using Gaussian Process as alternative to spline?
 #  - Use a GP to fit a landscape based on MAP between points
