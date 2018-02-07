@@ -112,3 +112,15 @@ Ueg8 = NormalSoS.normopt2(f8,x8,basis,MosekSolver(),true)
 @time Ueg8 = NormalSoS.normdecomp(f8,x8, MosekSolver(),1,2,:minimal,Ueg8)
 plt8 = NormalSoS.plotlandscape(f8,Ueg8,x8,([0 3],[0 3]), false);    plot(plt8)
 NormalSoS.checknorm(f8,Ueg8,x8)
+
+
+## Example 9: Stochastic resonace system from Cameron (2012)
+a = -10.5;    e = 1000.0;
+@polyvar x9[1:2]
+F9(x::Vector) = [e*(x[1] - x[1]^3/3. - x[2]);
+                 x[1] + a];
+f9 = F9(x9);
+Ueg9 = NormalSoS.minlyapunov(f9,x9,4)
+basis = NormalSoS.minimalbasis(f9,x9);
+Ueg9 = NormalSoS.normopt2(f9,x9,basis,MosekSolver())
+plt9 = NormalSoS.plotlandscape(f9,Ueg9,x9,([-10 10],[-10 10]), false);    plot(plt9)

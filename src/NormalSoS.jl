@@ -225,13 +225,13 @@ end
 A minimal working example to obtain a Lyapunov function. Originally made for the
 question in julia discourse.
 """
-function minlyapunov(f,x)
+function minlyapunov(f,x,o=2)
 
     n = length(x);
 
     m = SOSModel(solver=CSDPSolver());
     @variable m ϵ
-    @polyvariable m V monomials(x,2);
+    @polyvariable m V monomials(x,0:o);
 
     # Make the semialgebraicset of non-negative x
     s = @set 0 ≤ x[1]
