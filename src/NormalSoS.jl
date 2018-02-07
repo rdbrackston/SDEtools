@@ -114,7 +114,7 @@ end
 Obtains a Lyapunov function coming close to orthogonality. Computes a suitable
 lower bounding polynomial and maximises the sum of the coefficients.
 """
-function normopt2(f, x, basis, SDPsolver=CSDPSolver())
+function normopt2(f, x, basis, SDPsolver=CSDPSolver(), nonneg=false)
     # Vector ϵ used for lower bound
 
     n = length(f);
@@ -130,8 +130,8 @@ function normopt2(f, x, basis, SDPsolver=CSDPSolver())
         bnd = x[1];    # Initialise the type of bnd
         # First add the maximum even order polynomial for each x[ii]
         for ii=1:n;
-            o[ii] = maximum(filter(iseven,[degree(Vi,x[ii]) for Vi in basis]))
-            bnd += x[ii]^o[ii];
+            o[ii] = maximum(filter(iseven,[degree(Vi,x[ii]) for Vi in basis]));
+            if o[ii]>0;    bnd += x[ii]^o[ii];    end
         end
         # Now add any fully even terms of mixed x[ii], e.g. x[1]^2*x[2]^2
         for bi in basis
@@ -152,14 +152,24 @@ function normopt2(f, x, basis, SDPsolver=CSDPSolver())
     # Positive definitness constraint on V
     @variable m ϵ[1:b];
     for ii=1:b; @constraint m ϵ[ii] ≥ 0; end
-    # @constraint m sum([ϵ[ii]*bnd[ii] for ii=1:length(bnd)]) ≥ 0
-    @polyconstraint m V ≥ sum([ϵ[ii]*bnd[ii] for ii=1:b])
 
-    # Apply matrix constraint, ∇U⋅g ≤ 0.
+    # Make Mᵥ for matrix constraint, ∇U⋅fᵥ ≤ 0.
     I = NormalSoS.eye(x);
     Mv = [-dot(differentiate(V, x),f); differentiate(V,x)];
     for ii=1:n; Mv = hcat(Mv, [differentiate(V,x)[ii];I[:,ii]]); end
-    @SDconstraint m Mv ⪰ 0 # Mv positive definite
+
+    if nonneg
+        # Generate the set for non-negative x
+        s = @set 0 ≤ x[1]
+        for ii=2:n
+            s = @set 0 ≤ x[ii] && s;
+        end
+        @polyconstraint(m, V≥sum([ϵ[ii]*bnd[ii] for ii=1:b]), domain=s)
+        @constraint(m, Mv in PSDCone(), domain=s); # Mv positive definite
+    else
+        @polyconstraint m V ≥ sum([ϵ[ii]*bnd[ii] for ii=1:b])
+        @SDconstraint m Mv ⪰ 0 # Mv positive definite
+    end
 
     @objective m Max sum(ϵ)
     status = solve(m);
@@ -223,15 +233,22 @@ function minlyapunov(f,x)
     @variable m ϵ
     @polyvariable m V monomials(x,2);
 
+    # Make the semialgebraicset of non-negative x
+    s = @set 0 ≤ x[1]
+    for ii=2:n
+        s = @set 0 ≤ x[ii] && s;
+    end
+
     # Positive definiteness constraint
-    @polyconstraint m V ≥ ϵ*sum(x.^2);
+    @polyconstraint(m, V ≥ ϵ*sum(x.^2), domain=s);
     @constraint m ϵ ≥ 0
 
     # Apply matrix constraint, ∇U⋅fᵥ ≤ 0.
     I = NormalSoS.eye(x);
     Mv = [-dot(differentiate(V, x),f); differentiate(V,x)];
     for ii=1:n; Mv = hcat(Mv, [differentiate(V,x)[ii];I[:,ii]]); end
-    @SDconstraint m Mv ⪰ 0 # Mv positive definite
+
+    @constraint(m, Mv in PSDCone(), domain=s); # Mv positive definite
 
     status = solve(m);
     @show(status)

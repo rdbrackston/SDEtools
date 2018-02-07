@@ -30,7 +30,8 @@ NormalSoS.checknorm(f1,Ueg1,x1)
 F2(x::Vector) = [-1.0 + 9.0x[1] - 2.0x[1]^3 + 9.0x[2] - 2.0x[2]^3;
       1.0 - 11.0x[1] + 2.0x[1]^3 + 11.0x[2] - 2.0x[2]^3];
 f2 = F2(x2);
-basis = NormalSoS.minimalbasis(f2,x2);    Ueg2 = NormalSoS.normopt2(f2,x2,basis,MosekSolver())
+basis = NormalSoS.minimalbasis(f2,x2);
+Ueg2 = NormalSoS.normopt2(f2,x2,basis,MosekSolver())
 @time Ueg2 = NormalSoS.normdecomp(f2,x2, MosekSolver(),1)
 plt2 = NormalSoS.plotlandscape(f2,Ueg2,x2,([-3 3],[-3 3]),true);    plot(plt2)
 NormalSoS.checknorm(f2,Ueg2,x2)
@@ -100,13 +101,14 @@ NormalSoS.checknorm(f7,Ueg7,x7)
 
 ## Example 8: Brusselator reaction
 # Probably need to specify that it applies only for positive x
-A = 0.0;    B = 0.5 + A^2;
+A = 1.0;    B = 0.5 + A^2;
 @polyvar x8[1:2]
 F8(x::Vector) = [A + x[1]^2*x[2] - B*x[1] - x[1];
                  B*x[1] - x[1]^2*x[2]];
 f8 = F8(x8);
-Ueg8 = NormalSoS.lyapunov(f8,x8,MosekSolver(),4,true)
-basis = NormalSoS.minimalbasis(f8,x8);    Ueg8 = NormalSoS.normopt1(f8,x8,basis,MosekSolver(),4)
+Ueg8 = NormalSoS.lyapunov(f8,x8)# ,MosekSolver(),4,true)
+basis = NormalSoS.minimalbasis(f8,x8);
+Ueg8 = NormalSoS.normopt2(f8,x8,basis,MosekSolver(),true)
 @time Ueg8 = NormalSoS.normdecomp(f8,x8, MosekSolver(),1,2,:minimal,Ueg8)
 plt8 = NormalSoS.plotlandscape(f8,Ueg8,x8,([0 3],[0 3]), false);    plot(plt8)
 NormalSoS.checknorm(f8,Ueg8,x8)
