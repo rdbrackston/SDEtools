@@ -48,10 +48,10 @@ function normdecomp(f, x, SDPsolver=CSDPSolver(), nIters=1, o=2, basis=:minimal,
         m = SOSModel(solver=SDPsolver);
         @variable m ϵ
         @variable m α
-        @polyvariable m V Z
+        @variable m V Poly(Z)
 
         # Positive definiteness constraint
-        @polyconstraint m V ≥ ϵ*sum(x.^2);
+        @constraint m V ≥ ϵ*sum(x.^2);
 
         # Apply matrix constraint, ∇U⋅g ≤ 0.
         Mv = [-dot(differentiate(V, x),f); differentiate(V,x)];
@@ -59,7 +59,7 @@ function normdecomp(f, x, SDPsolver=CSDPSolver(), nIters=1, o=2, basis=:minimal,
         @SDconstraint m Mv ⪰ 0 # Mv positive definite
 
         # Wynn inequality constraint
-        @polyconstraint m dot(differentiate(V,x),f+2*differentiate(U,x)) ≥
+        @constraint m dot(differentiate(V,x),f+2*differentiate(U,x)) ≥
             α*dot(differentiate(U,x),f) + (1+α)*sum(differentiate(U,x).^2)
 
         @constraint m α ≥ 0
@@ -88,10 +88,10 @@ function normopt1(f, x, basis, SDPsolver=CSDPSolver(), o=2)
     m = SOSModel(solver=SDPsolver);
     @variable m ϵ
 
-    @polyvariable m V basis
+    @variable m V Poly(basis)
 
     # Positive definiteness constraint
-    @polyconstraint m V ≥ ϵ*sum(x.^o);
+    @constraint m V ≥ ϵ*sum(x.^o);
 
     # Apply matrix constraint, ∇U⋅g ≤ 0.
     I = NormalSoS.eye(x);
@@ -121,7 +121,7 @@ function normopt2(f, x, basis, SDPsolver=CSDPSolver(), nonneg=false)
 
     m = SOSModel(solver=SDPsolver);
 
-    @polyvariable m V basis
+    @variable m V Poly(basis)
 
     # Specify the lower bounding polynomial, bnd
     o = zeros(Int,1,n)
@@ -164,10 +164,10 @@ function normopt2(f, x, basis, SDPsolver=CSDPSolver(), nonneg=false)
         for ii=2:n
             s = @set 0 ≤ x[ii] && s;
         end
-        @polyconstraint(m, V≥sum([ϵ[ii]*bnd[ii] for ii=1:b]), domain=s)
+        @constraint(m, V≥sum([ϵ[ii]*bnd[ii] for ii=1:b]), domain=s)
         @constraint(m, Mv in PSDCone(), domain=s); # Mv positive definite
     else
-        @polyconstraint m V ≥ sum([ϵ[ii]*bnd[ii] for ii=1:b])
+        @constraint m V ≥ sum([ϵ[ii]*bnd[ii] for ii=1:b])
         @SDconstraint m Mv ⪰ 0 # Mv positive definite
     end
 
@@ -193,12 +193,10 @@ function lyapunov(f, x, SDPsolver=CSDPSolver(), o=2, nonneg=false)
 
     m = SOSModel(solver=SDPsolver);
     # @variable m ϵ
-    @polyvariable m V monomials(x,o);
+    @variable m V Poly(monomials(x,0:o));
 
     # Positive definiteness constraint
-    @polyconstraint m V ≥ sum(x.^2);
-    # @constraint m ϵ ≥ 0
-    # @objective m Max ϵ
+    @constraint m V ≥ sum(x.^2);
 
     # Standard Lyapunov constraint
     P = dot(differentiate(V, x),f);
@@ -231,7 +229,7 @@ function minlyapunov(f,x,o=2)
 
     m = SOSModel(solver=CSDPSolver());
     @variable m ϵ
-    @polyvariable m V monomials(x,0:o);
+    @variable m V Poly(monomials(x,0:o));
 
     # Make the semialgebraicset of non-negative x
     s = @set 0 ≤ x[1]
@@ -240,7 +238,7 @@ function minlyapunov(f,x,o=2)
     end
 
     # Positive definiteness constraint
-    @polyconstraint(m, V ≥ ϵ*sum(x.^2), domain=s);
+    @constraint(m, V ≥ ϵ*sum(x.^2), domain=s);
     @constraint m ϵ ≥ 0
 
     # Apply matrix constraint, ∇U⋅fᵥ ≤ 0.
