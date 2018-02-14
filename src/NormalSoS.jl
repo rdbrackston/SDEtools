@@ -172,7 +172,10 @@ function normopt2(f, x, basis, SDPsolver=CSDPSolver(), nonneg=false)
     end
 
     @objective m Max sum(ϵ)
+    # TT = STDOUT; # save original STDOUT stream
+    # redirect_stdout();
     status = solve(m);
+    # redirect_stdout(TT);
 
     @show status
     @show bnd
