@@ -73,7 +73,7 @@ function normdecomp(f, x, SDPsolver=MosekSolver(), nIters=1, basis=:extended,
 
     end
 
-    return V
+    return filterterms(V)
 
 end
 
@@ -418,5 +418,26 @@ function checknorm(f, U, x)
     return mean(abs.(coefficients(res))) /
             mean([mean(abs.(coefficients(f[ii]))) for ii=1:length(x)]);
 end
+
+
+"""
+Function to remove terms with very small coefficients
+"""
+function filterterms(U, tol=1e-4)
+
+    U2 = 1;
+
+    idxs = abs.(coefficients(U)).>tol;
+    for (ii,trm) in enumerate(U)
+        if idxs[ii]
+            U2 += trm;
+        end
+    end
+
+    U2 -= 1;
+    return U2
+
+end
+
 
 end
