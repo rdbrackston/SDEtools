@@ -1,7 +1,7 @@
 # Run a series of tests of the NormDecomp function
 
 using SumOfSquares, JuMP, PolyJuMP, DynamicPolynomials, MultivariatePolynomials
-using Mosek, CSDP#, SCS
+using Mosek#, CSDP#, SCS
 using Plots
 gr()
 
@@ -73,14 +73,14 @@ NormalSoS.checknorm(f5,Ueg5,x5)
 ## Example 6: The Maier-Stein Model
 # For μ=γ, U = -0.5x[1]^2 + 0.25x[1]^4 + 0.5μx[2]^2 + 0.5μx[1]^2x[2]^2
 # Inexplicable fails, even in case of pure potential
-γ = 1.0;    μ = 1.0γ;
+γ = 1.0;    μ = 2.0γ;
 @polyvar x6[1:2]
 F6(x::Vector) = [x[1] - x[1]^3 - γ*x[1]x[2]^2;
                  -μ*(x[1]^2 + 1)x[2]];
 f6 = F6(x6);
 Uan6 = -0.5*x6[1]^2 + 0.25*x6[1]^4 + 0.5γ*x6[2]^2 + 0.5γ*x6[1]^2*x6[2]^2;
 basis = NormalSoS.minimalbasis(f6,x6);    Ueg6 = NormalSoS.normopt2(f6,x6,basis,MosekSolver())
-@time Ueg6 = NormalSoS.normdecomp(f6,x6, MosekSolver(),1)
+@time Ueg6 = NormalSoS.normdecomp(f6,x6, MosekSolver(),0)
 plt6 = NormalSoS.plotlandscape(f6,Ueg6,x6,([-2 2],[-2 2]),true);    plot(plt6)
 NormalSoS.checknorm(f6,Ueg6,x6)
 
@@ -94,7 +94,7 @@ F7(x::Vector) = [-x[1] + x[2]^3 - 3*x[3]*x[4];
                  x[1]*x[3] - x[4]^3];
 f7 = F7(x7);
 basis = NormalSoS.minimalbasis(f7,x7);    Ueg7 = NormalSoS.normopt2(f7,x7,basis,MosekSolver())
-@time Ueg7 = NormalSoS.normdecomp(f7,x7, MosekSolver(),1)
+@time Ueg7 = NormalSoS.normdecomp(f7,x7, MosekSolver(),0)
 plt7 = NormalSoS.plotlandscape(f7,Ueg7,x7,([-3 3],[-3 3]), false);    plot(plt7)
 NormalSoS.checknorm(f7,Ueg7,x7)
 
@@ -109,13 +109,13 @@ f8 = F8(x8);
 Ueg8 = NormalSoS.lyapunov(f8,x8)# ,MosekSolver(),4,true)
 basis = NormalSoS.minimalbasis(f8,x8);
 Ueg8 = NormalSoS.normopt2(f8,x8,basis,MosekSolver(),true)
-@time Ueg8 = NormalSoS.normdecomp(f8,x8, MosekSolver(),1,2,:minimal,Ueg8)
+@time Ueg8 = NormalSoS.normdecomp(f8,x8, MosekSolver(),1,:minimal,2,Ueg8)
 plt8 = NormalSoS.plotlandscape(f8,Ueg8,x8,([0 3],[0 3]), false);    plot(plt8)
 NormalSoS.checknorm(f8,Ueg8,x8)
 
 
 ## Example 9: Stochastic resonace system from Cameron (2012)
-a = -10.5;    e = 1000.0;
+a = -10.5;    e = 5.0;
 @polyvar x9[1:2]
 F9(x::Vector) = [e*(x[1] - x[1]^3/3. - x[2]);
                  x[1] + a];

@@ -1,6 +1,6 @@
 module NormalSoS
 
-using SumOfSquares, JuMP, PolyJuMP, DynamicPolynomials, MultivariatePolynomials, CSDP
+using SumOfSquares, JuMP, PolyJuMP, DynamicPolynomials, MultivariatePolynomials, Mosek
 using Plots
 gr()
 export normdecomp
@@ -14,14 +14,16 @@ export normdecomp
 Performs a two stage optimisation to try and obtain a Lyapunov function
 satisfying the normal decomposition.
 """
-function normdecomp(f, x, SDPsolver=CSDPSolver(), nIters=1, o=2, basis=:minimal,
-                    V::Union{DynamicPolynomials.Polynomial,Symbol}=:auto)
+function normdecomp(f, x, SDPsolver=MosekSolver(), nIters=1, basis=:extended,
+                    o=2, V::Union{DynamicPolynomials.Polynomial,Symbol}=:auto)
 
     n = length(f);
 
     # The Lyapunov function V(x):
     if basis == :minimal
         Z = minimalbasis(f,x);
+    elseif basis == :extended
+        Z = extendedbasis(f,x);
     elseif basis == :monomial
         Z = monomials(x,0:o);
     else
@@ -80,7 +82,7 @@ end
 Obtains a Lyapunov function coming close to orthogonality. Uses a simple
 lower bounding polynomial and maximises a single coefficient.
 """
-function normopt1(f, x, basis, SDPsolver=CSDPSolver(), o=2)
+function normopt1(f, x, basis, SDPsolver=MosekSolver(), o=2)
     # Single ϵ used for lower bound
 
     n = length(f);
@@ -114,7 +116,7 @@ end
 Obtains a Lyapunov function coming close to orthogonality. Computes a suitable
 lower bounding polynomial and maximises the sum of the coefficients.
 """
-function normopt2(f, x, basis, SDPsolver=CSDPSolver(), nonneg=false)
+function normopt2(f, x, basis, SDPsolver=MosekSolver(), nonneg=false)
     # Vector ϵ used for lower bound
 
     n = length(f);
@@ -190,7 +192,7 @@ A basic function to obtain a Lyapunov function for ODE f. The function can be
 applied only for positive x, e.g. for a system describing a chemical reaction
 network.
 """
-function lyapunov(f, x, SDPsolver=CSDPSolver(), o=2, nonneg=false)
+function lyapunov(f, x, SDPsolver=MosekSolver(), o=2, nonneg=false)
 
     n = length(f);
 
@@ -278,6 +280,46 @@ function minimalbasis(f,x)
 
     return basis
 
+end
+
+
+"""
+Obtain an extended basis for V, starting from the terms required to form f, but
+with the addition of cross-terms up to the maximum order in each xᵢ.
+"""
+function extendedbasis(f,x)
+
+    # Start from the minimal basis
+    basis = minimalbasis(f,x);
+    n = length(x);
+
+    # Find maximum total degree
+    d = maximum([degree(Vi,x[j]) for Vi in basis, j=1:n]);
+
+    # Now find maximum individual degree for each xᵢ, o[ii]
+    o = zeros(Int,1,n)
+    for ii=1:n
+        o[ii] = maximum([degree(Vi,x[ii]) for Vi in basis]);
+    end
+
+    # Add all mixed terms up to total degree d, and with maximum individual degree o[ii]
+    basis = monomials(x,0:d, m->check(m,x,o));
+    return basis
+
+end
+
+
+"""
+Define the function that confirms that all for monomial term m, each variable
+x[ii] has degree less than o[ii].
+"""
+function check(m,x,o)
+    for ii=1:length(x)
+        if degree(m,x[ii])>o[ii]
+            return false;
+        end
+    end
+    return true
 end
 
 
