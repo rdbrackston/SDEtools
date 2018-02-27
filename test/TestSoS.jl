@@ -129,8 +129,7 @@ NormalSoS.checknorm(f9,Ueg9,x9)
 F10(x::Vector) = [1 - x[1] - x[3]^2;
                   1;
                  x[3] - x[3]^3];
-f5 = F5(x5);
-# Uan4 = λ*(x4[1]^4+x4[2]^4) - α*x4[1]^2 + β*x4[1];
-@time Ueg5 = NormalSoS.normdecomp(f5,x5, MosekSolver(),0)
-plt5 = NormalSoS.plotlandscape(f5,Ueg5,x5,([-3 3],[-3 3]),false);    plot(plt5)
-NormalSoS.checknorm(f5,Ueg5,x5)
+f10 = F10(x10);
+@time Ueg10 = NormalSoS.normdecomp(f10,x10, MosekSolver(),1)
+plt10 = NormalSoS.plotlandscape(f10,Ueg10,x10,([-3 3],[-3 3]),false);    plot(plt10)
+NormalSoS.checknorm(f10,Ueg10,x10)

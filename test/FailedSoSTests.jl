@@ -87,3 +87,42 @@ NormalSoS.checknorm(f6,Ueg6,x6)
 # bnd = monomials(x,collect(2:2:o), m -> exponents(m)[1]==0 || exponents(m)[2]==0)
 # bnd = monomials(x,[o], m -> exponents(m)[1]!=1 && exponents(m)[1]!=3);
 # bnd = monomials(x,[o], m -> exponents(m)[1]==0 || exponents(m)[2]==0);
+
+
+## Example 9: Stochastic resonace system from Cameron (2012)
+a = -10.5;    e = 5.0;
+@polyvar x9[1:2]
+F9(x::Vector) = [e*(x[1] - x[1]^3/3. - x[2]);
+                 x[1] + a];
+f9 = F9(x9);
+Ueg9 = NormalSoS.minlyapunov(f9,x9,4)
+basis = NormalSoS.minimalbasis(f9,x9);
+Ueg9 = NormalSoS.normopt2(f9,x9,basis,MosekSolver())
+plt9 = NormalSoS.plotlandscape(f9,Ueg9,x9,([-10 10],[-10 10]), false);    plot(plt9)
+
+
+## Wnt signalling pathway model - Memory cost is too high
+@polyvar x[1:19]
+k = [1.7182818,53.2659,3.4134082,0.61409879,0.61409879,3.4134082,0.98168436,0.98168436,92.331732,0.86466471,79.9512906,97.932525,1,3.2654672,0.61699064,0.61699064,37.913879,0.86466471,0.86466471,4.7267833,0.17182818,0.68292191,1,0.55950727,1.0117639,1.7182818,1.7182818,0.99326205,0.99326205,5.9744464,1.0];
+F11(X::Vector) = [-k[1]X[1] + k[2]X[2];
+                 k[1]*X[1] - (k[2]+k[26])X[2] + k[27]X[3] - k[3]X[2]X[4]+ (k[4]+k[5])X[14];
+                 k[26]X[2] - k[27]X[3] - k[14]X[3]X[6] + (k[15] + k[16])X[15];
+                 -k[3]x[2]X[4] - k[9]X[4]X[10] + k[4]X[14] + k[8]X[16] + (k[10] + k[11])X[18];
+                 -k[28]X[5] + k[29]X[7] - k[6]X[5]X[8] + k[5]X[14] + k[7]X[16];
+                 -k[14]X[3]X[6] - k[20]X[6]X[11] + k[15]X[15] + k[19]X[17] + (k[21]+k[22])X[19];
+                 k[28]X[5] - k[29]X[7] - k[17]X[7]X[9] + k[16]X[15] + k[18]X[17];
+                 -k[6]X[5]X[8] + (k[7]+k[8])X[16];
+                 -k[17]X[7]X[9] + (k[18]+k[19])X[17];
+                 k[12] - (k[13]+k[30])X[10] - k[9]X[4]X[10] + k[31]X[11] + k[10]X[18];
+                 -k[23]X[11] + k[30]X[10] - k[31]X[11] - k[20]X[6]X[11] - k[24]X[11]X[12] + k[25]X[13] + k[21]X[19];
+                 -k[24]X[11]X[12] + k[25]X[13];
+                 k[24]X[11]X[12] - k[25]X[13];
+                 k[3]X[2]X[4] - (k[4]+k[5])X[14];
+                 k[14]X[3]X[6] - (k[15]+k[16])X[15];
+                 k[6]X[5]X[8] - (k[7]+k[8])X[16];
+                 k[17]X[7]X[9] - (k[18]+k[19])X[17];
+                 k[9]X[4]X[10] - (k[10]+k[11])X[18];
+                 k[20]X[6]X[11] - (k[21]+k[22])X[19]];
+f11 = F11(x);
+basis = NormalSoS.minimalbasis(f11,x);
+Ueg11 = NormalSoS.normopt2(f11,x,basis,MosekSolver(),true)
