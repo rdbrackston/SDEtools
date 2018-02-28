@@ -71,6 +71,11 @@ function normdecomp(f, x, SDPsolver=MosekSolver(), nIters=1, basis=:extended,
         status = solve(m);
         V = getvalue(V);
 
+        # If V now contains any NaN, return U instead
+        if any(isnan.(coefficients(V)))
+            return filterterms(U)
+        end
+
     end
 
     return filterterms(V)
