@@ -76,6 +76,10 @@ function normdecomp(f, x, SDPsolver=MosekSolver(), nIters=1, basis=:extended,
             return filterterms(U)
         end
 
+        if checknorm(f,V,x) < 1e-10
+            return filterterms(V);
+        end
+
     end
 
     return filterterms(V)
