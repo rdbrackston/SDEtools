@@ -14,12 +14,12 @@ using ForwardDiff
 Evaluate the time-independent geometric action for a discretised path φ.
 """
 function action(φ::AbstractArray,
-           f::Function, g::Function,
-           N::Int64, n::Int64)
+           f::Function, g::Function)
 
     # Loop over the elements in φ
     # V = vcat(X₀,φ,Xₑ);
     V = φ;
+    (N,n) = size(V);
 
     action = 0.0;
     for jj = 1:N-1
@@ -45,7 +45,7 @@ function action(φ::AbstractArray,
         action += (sqrt(b)-c/sqrt(d))*sqrt(dl²)
     end
 
-    return 2.0*action
+    return 0.5*action
 
 end
 
