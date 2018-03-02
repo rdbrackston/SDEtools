@@ -41,6 +41,10 @@ function normdecomp(f, x, SDPsolver=MosekSolver(), nIters=1, basis=:extended,
         # V = normopt1(f,x,Z,SDPsolver,o);
         V = normopt2(f,x,Z,SDPsolver);
     end
+    if any(isnan.(coefficients(V)))
+        println("Optimisation failed, exiting.")
+        return zeros(size(Z))'*Z
+    end
 
     # Now iterate to improve
     for ii=1:nIters
