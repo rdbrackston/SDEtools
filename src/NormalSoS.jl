@@ -15,7 +15,8 @@ Performs a two stage optimisation to try and obtain a Lyapunov function
 satisfying the normal decomposition.
 """
 function normdecomp(f, x, SDPsolver=MosekSolver(), nIters=1, basis=:extended,
-                    o=2, V::Union{DynamicPolynomials.Polynomial,Symbol}=:auto)
+                    o=2, filter=true,
+                    V::Union{DynamicPolynomials.Polynomial,Symbol}=:auto)
 
     n = length(f);
 
@@ -77,16 +78,16 @@ function normdecomp(f, x, SDPsolver=MosekSolver(), nIters=1, basis=:extended,
 
         # If V now contains any NaN, return U instead
         if any(isnan.(coefficients(V)))
-            return filterterms(U)
+            return filterterms(U,filter)
         end
 
         if checknorm(f,V,x) < 1e-10
-            return filterterms(V);
+            return filterterms(V,filter);
         end
 
     end
 
-    return filterterms(V)
+    return filterterms(V,filter)
 
 end
 
@@ -437,19 +438,23 @@ end
 """
 Function to remove terms with very small coefficients
 """
-function filterterms(U, tol=1e-4)
+function filterterms(U, filter=true, tol=1e-4)
 
-    U2 = 1;
+    if filter
+        U2 = 1;
 
-    idxs = abs.(coefficients(U)).>tol;
-    for (ii,trm) in enumerate(U)
-        if idxs[ii]
-            U2 += trm;
+        idxs = abs.(coefficients(U)).>tol;
+        for (ii,trm) in enumerate(U)
+            if idxs[ii]
+                U2 += trm;
+            end
         end
-    end
 
-    U2 -= 1;
-    return U2
+        U2 -= 1;
+        return U2
+    else
+        return U
+    end
 
 end
 
