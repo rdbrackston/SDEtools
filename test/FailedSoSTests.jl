@@ -90,15 +90,16 @@ NormalSoS.checknorm(f6,Ueg6,x6)
 
 
 ## Example 9: Stochastic resonace system from Cameron (2012)
-a = -10.5;    e = 5.0;
+a = -10.5;    e = 1.0;
 @polyvar x9[1:2]
 F9(x::Vector) = [e*(x[1] - x[1]^3/3. - x[2]);
                  x[1] + a];
 f9 = F9(x9);
-Ueg9 = NormalSoS.minlyapunov(f9,x9,4)
 basis = NormalSoS.minimalbasis(f9,x9);
 Ueg9 = NormalSoS.normopt2(f9,x9,basis,MosekSolver())
-plt9 = NormalSoS.plotlandscape(f9,Ueg9,x9,([-10 10],[-10 10]), false);    plot(plt9)
+Ueg9 = NormalSoS.normdecomp(f9,x9, MosekSolver(),1,:minimal,4)
+plt9 = NormalSoS.plotlandscape(f9,Ueg9,x9,([0 8],[0 8]), true);    plot(plt9)
+NormalSoS.checknorm(f9,Ueg9,x9)
 
 
 ## Wnt signalling pathway model - Memory cost is too high

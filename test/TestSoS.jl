@@ -17,10 +17,10 @@ CSDP   - Faster than SCS but requires more iterations or higher order bounding
 
 ## Example 1: Quadratic system from Zhou et al (2012) - Y
 @polyvar x1[1:2]
-F1(x::Vector) = [-x[1] + 2.0x[2]^2;
-     -x[1]*x[2] - 2.0x[2]];
+F1(x::Vector) = [-x[1] + 1.0x[2]^2;
+     -1.5*x[1]*x[2] - 2.0x[2]];
 f1 = F1(x1);
-@time Ueg1 = NormalSoS.normdecomp(f1,x1, MosekSolver(),0)
+Ueg1 = NormalSoS.normdecomp(f1,x1, MosekSolver(),2,:monomial,3)
 plt1 = NormalSoS.plotlandscape(f1,Ueg1,x1,([-3 3],[-3 3]),true);    plot(plt1)
 NormalSoS.checknorm(f1,Ueg1,x1)
 
@@ -73,14 +73,14 @@ NormalSoS.checknorm(f5,Ueg5,x5)
 ## Example 6: The Maier-Stein Model
 # For μ=γ, U = -0.5x[1]^2 + 0.25x[1]^4 + 0.5μx[2]^2 + 0.5μx[1]^2x[2]^2
 # Inexplicable fails, even in case of pure potential
-γ = 1.0;    μ = 2.0γ;
+γ = 1.0;    μ = 2.5γ;
 @polyvar x6[1:2]
 F6(x::Vector) = [x[1] - x[1]^3 - γ*x[1]x[2]^2;
                  -μ*(x[1]^2 + 1)x[2]];
 f6 = F6(x6);
 Uan6 = -0.5*x6[1]^2 + 0.25*x6[1]^4 + 0.5γ*x6[2]^2 + 0.5γ*x6[1]^2*x6[2]^2;
 basis = NormalSoS.minimalbasis(f6,x6);    Ueg6 = NormalSoS.normopt2(f6,x6,basis,MosekSolver())
-@time Ueg6 = NormalSoS.normdecomp(f6,x6, MosekSolver(),0)
+@time Ueg6 = NormalSoS.normdecomp(f6,x6, MosekSolver(),0, :minimal,4)
 plt6 = NormalSoS.plotlandscape(f6,Ueg6,x6,([-2 2],[-2 2]),true);    plot(plt6)
 NormalSoS.checknorm(f6,Ueg6,x6)
 
@@ -94,7 +94,7 @@ F7(x::Vector) = [-x[1] + x[2]^3 - 3*x[3]*x[4];
                  x[1]*x[3] - x[4]^3];
 f7 = F7(x7);
 basis = NormalSoS.minimalbasis(f7,x7);    Ueg7 = NormalSoS.normopt2(f7,x7,basis,MosekSolver())
-@time Ueg7 = NormalSoS.normdecomp(f7,x7, MosekSolver(),0)
+@time Ueg7 = NormalSoS.normdecomp(f7,x7, MosekSolver(),0,:minimal)
 plt7 = NormalSoS.plotlandscape(f7,Ueg7,x7,([-3 3],[-3 3]), false);    plot(plt7)
 NormalSoS.checknorm(f7,Ueg7,x7)
 
@@ -130,6 +130,6 @@ F10(x::Vector) = [1 - x[1] - x[3]^2;
                   1;
                  x[3] - x[3]^3];
 f10 = F10(x10);
-@time Ueg10 = NormalSoS.normdecomp(f10,x10, MosekSolver(),1)
+@time Ueg10 = NormalSoS.normdecomp(f10,x10, MosekSolver(),1,:minimal)
 plt10 = NormalSoS.plotlandscape(f10,Ueg10,x10,([-3 3],[-3 3]),false);    plot(plt10)
 NormalSoS.checknorm(f10,Ueg10,x10)
