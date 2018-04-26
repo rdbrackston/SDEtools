@@ -89,17 +89,44 @@ NormalSoS.checknorm(f6,Ueg6,x6)
 # bnd = monomials(x,[o], m -> exponents(m)[1]==0 || exponents(m)[2]==0);
 
 
-## Example 9: Stochastic resonace system from Cameron (2012)
+## Example 8: Brusselator reaction
+# Probably need to specify that it applies only for positive x
+A = 1.0;    B = 0.5 + A^2;
+@polyvar x8[1:2]
+F8(x::Vector) = [A + x[1]^2*x[2] - B*x[1] - x[1];
+                 B*x[1] - x[1]^2*x[2]];
+f8 = F8(x8);
+Ueg8 = NormalSoS.lyapunov(f8,x8)# ,MosekSolver(),4,true)
+basis = NormalSoS.minimalbasis(f8,x8);
+Ueg8 = NormalSoS.normopt2(f8,x8,basis,MosekSolver(),true)
+@time Ueg8 = NormalSoS.normdecomp(f8,x8, MosekSolver(),1,:minimal,2,Ueg8)
+plt8 = NormalSoS.plotlandscape(f8,Ueg8,x8,([0 3],[0 3]), false);    plot(plt8)
+NormalSoS.checknorm(f8,Ueg8,x8)
+
+
+## Example 8: Stochastic resonace system from Cameron (2012)
+# Requires positive x limitation, and appears to break sub-orthogonality?
 a = -10.5;    e = 1.0;
-@polyvar x9[1:2]
-F9(x::Vector) = [e*(x[1] - x[1]^3/3. - x[2]);
+@polyvar x8[1:2]
+F8(x::Vector) = [e*(x[1] - x[1]^3/3. - x[2]);
                  x[1] + a];
-f9 = F9(x9);
-basis = NormalSoS.minimalbasis(f9,x9);
-Ueg9 = NormalSoS.normopt2(f9,x9,basis,MosekSolver())
-Ueg9 = NormalSoS.normdecomp(f9,x9, MosekSolver(),1,:minimal,4)
-plt9 = NormalSoS.plotlandscape(f9,Ueg9,x9,([0 8],[0 8]), true);    plot(plt9)
-NormalSoS.checknorm(f9,Ueg9,x9)
+f8 = F8(x8);
+basis = NormalSoS.minimalbasis(f8,x8);
+Ueg8 = NormalSoS.normopt2(f8,x8,basis,MosekSolver(), true)
+Ueg8 = NormalSoS.normdecomp(f8,x8, MosekSolver(),1,:minimal)
+plt8 = NormalSoS.plotlandscape(f8,Ueg8,x8,([0 8],[0 8]), true);    plot(plt8)
+NormalSoS.checknorm(f8,Ueg8,x8)
+
+
+## Example 10 - Too similar to eg.9 (boring)
+@polyvar x10[1:3]
+F10(x::Vector) = [1 - x[1] - x[3]^2;
+                  1;
+                 x[3] - x[3]^3];
+f10 = F10(x10);
+@time Ueg10 = NormalSoS.normdecomp(f10,x10, MosekSolver(),1,:minimal)
+plt10 = NormalSoS.plotlandscape(f10,Ueg10,x10,([-3 3],[-3 3]),false);    plot(plt10)
+NormalSoS.checknorm(f10,Ueg10,x10)
 
 
 ## Wnt signalling pathway model - Memory cost is too high
