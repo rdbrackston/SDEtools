@@ -308,7 +308,7 @@ function extendedbasis(f,x)
     n = length(x);
 
     # Find maximum total degree
-    d = maximum([degree(Vi,x[j]) for Vi in basis, j=1:n]);
+    d = maximum([degree(Vi) for Vi in basis]);
 
     # Now find maximum individual degree for each xᵢ, o[ii]
     o = zeros(Int,1,n)
