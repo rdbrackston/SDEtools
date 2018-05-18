@@ -5,10 +5,6 @@ using Plots
 gr()
 export normdecomp
 
-# To do:
-#  - Add plotting functions
-#  - Add function to check normality
-
 
 """
 Performs a two stage optimisation to try and obtain a Lyapunov function
@@ -202,9 +198,9 @@ end
 
 
 """
-A basic function to obtain a Lyapunov function for ODE f. The function can be
-applied only for positive x, e.g. for a system describing a chemical reaction
-network.
+A basic function to obtain a Lyapunov function for ODE f. The function can
+optionally be applied only for positive x, e.g. for a system describing a
+chemical reaction network.
 """
 function lyapunov(f, x, SDPsolver=MosekSolver(), o=2, nonneg=false)
 
