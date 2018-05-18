@@ -4,6 +4,8 @@ JuMP
 PolyJuMP
 DynamicPolynomials
 MultivariatePolynomials
-CSDP
+Mosek
 Optim
 ForwardDiff
+Plots
+gr
