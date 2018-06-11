@@ -1,14 +1,10 @@
 module gMAM
+# Module for computing the geometric minimum action path.
+# Currently only computation of the action is working.
 
 using Optim
 using ForwardDiff
 
-#= Possible optimisation options
-   - Use analytical expression for the gradient, similar to the standard method
-   - Use automatic differerentiation - not yet able to get this to work
-   - Implement the scheme proposed in Heymann and Vanden-Eijnden (2008)
-   - Use non-gradient optimisation methods, e.g. GA, simulated annealing
-=#
 
 """
 Evaluate the time-independent geometric action for a discretised path φ.
@@ -17,7 +13,6 @@ function action(φ::AbstractArray,
            f::Function, g::Function)
 
     # Loop over the elements in φ
-    # V = vcat(X₀,φ,Xₑ);
     V = φ;
     (N,n) = size(V);
 
@@ -41,7 +36,6 @@ function action(φ::AbstractArray,
             d += (V[jj+1,ii]-V[jj,ii])^2/(g(V[jj+1,:])[ii]+g(V[jj,:])[ii])^2;
         end
 
-        # println(c)
         action += (sqrt(b)-c/sqrt(d))*sqrt(dl²)
     end
 
@@ -73,10 +67,8 @@ function optimalpath(f::Function, g::Function,
                      φ₀::Union{AbstractArray,Symbol}=:auto, reRuns::Signed=1)
 
     n = length(x₀);       # Number of state dimensions
-    # method = ConjugateGradOptim.convergedient();
     # method = LBFGS();
     method = BFGS();
-    # method = NelderMead();
 
     # Evaluate the initial path if not given
     if φ₀==:auto

@@ -1,9 +1,7 @@
 module MAP
-
-#  Possible future modifications
-#  - Parametrise paths in terms of fewer points and use splines to interpolate (Interpolations.jl)
-#  - Consider using Gaussian Process as alternative to spline?
-#  - Use a GP to fit a landscape based on MAP between points
+# Module to compute the minimum action path via a gradient-based optimization.
+# Method is based upon that described in Perez-Carasco et al. PLoS Comp. Bio 12
+# e1005154 (2016)
 
 using Optim
 using ForwardDiff
