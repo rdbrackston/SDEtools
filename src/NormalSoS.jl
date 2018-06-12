@@ -258,7 +258,7 @@ function minlyapunov(f,x,o=2)
 
     # Apply matrix constraint, ∇U⋅fᵥ ≤ 0.
     I = NormalSoS.eye(x);
-    Mv = [-dot(differentiate(V, x),f); differentiate(V,x)];
+    Mv = [-dot(differentiate(V,x),f); differentiate(V,x)];
     for ii=1:n; Mv = hcat(Mv, [differentiate(V,x)[ii];I[:,ii]]); end
 
     @constraint(m, Mv in PSDCone(), domain=s); # Mv positive definite
@@ -343,6 +343,110 @@ function eye(x)
         push!(v,1.0+0.0x[1]);
     end
     return diagm(v)
+end
+
+"""
+Function to implement the new iterative upper bound method
+"""
+function upperbound(f, x, linear=true, niters=2)
+
+    n = length(f);
+    q = 2;
+
+    # The chosen basis for V(x):
+    Z = extendedbasis(f,x);
+    print("Chosen basis as:", "\n")
+    print(Z, "\n")
+
+    # Correctly typed identity matrix
+    I = eye(x);
+
+    # Function c required in optimization
+    c(g,h) = dot(differentiate(h,x), -f-2*differentiate(g,x)) + sum(differentiate(g,x).^2);
+
+    # Obtain initial guess for V₀
+    V = initialguess(f,x,linear);
+
+    # Begin iterative loop
+    for ii=1:niters
+
+        m = SOSModel(solver=MosekSolver());
+        @variable m W Poly(Z)
+
+        @variable m ϵ[1:n];
+        for ii=1:n; @constraint m -ϵ[ii] ≥ 0; end
+
+        @constraint m c(V,W) - sum([ϵ[ii]*x[ii]^2 for ii=1:n]) ≥ 0
+        @constraint m c(V,W) - c(V,V) ≥ 0;
+        @constraint m W ≥ 0
+        @constraint m -c(V,W) ≥ 0
+
+        @objective m Max sum(ϵ)
+        status = solve(m);
+        @show(status)
+
+        # Set new V₀ as the optimization output
+        V = getvalue(W)
+
+    end
+
+    return V
+
+end
+
+
+"""
+Function to provide the initial guess V₀ for the upper bound method
+"""
+function initialguess(f, x, linear=true)
+
+    if linear
+        println("Obtaining initial guess under condition of linearity.")
+
+        m = SOSModel(solver=MosekSolver());
+        # @variable m α
+        @variable m β
+        α = 1.0e0;
+
+        Exp = -β*α*sum(x.^2) + 0.25*sum((α*x-f).^2);
+        # @show α*x-f
+        @constraint m Exp ≤ 0;
+        @constraint m β ≥ 0
+        # @constraint m α ≥ 0
+
+        @objective m Min β
+        status = solve(m);
+        @show(status)
+
+        # @show getvalue(α)
+        return getvalue(β)*sum(x.^2)
+
+    else
+        println("Initial program for nonlinear case.")
+
+        d = maximum([maximum([degree(t) for t in fi]) for fi in f])
+        n = length(f);
+        u = 0.5*(x*sum(x.^(d-1)) - f);
+        @show(u)
+        Z = extendedbasis(f,x);
+
+        m = SOSModel(solver=MosekSolver());
+        @variable m V Poly(Z)
+        @variable m ϵ[1:n];
+
+        I = NormalSoS.eye(x);
+        M = [-dot(differentiate(V,x),f+2*u) - sum([ϵ[ii]*x[ii]^2 for ii=1:n]);
+              u];
+        for ii=1:n; M = hcat(Mv, [u[ii]; I[:,ii]]); end
+        @SDconstraint m M ⪰ 0
+
+        @objective m Min sum(ϵ)
+        status = solve(m);
+        @show(status);
+
+        return
+    end
+
 end
 
 
