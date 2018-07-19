@@ -170,18 +170,18 @@ function normopt2(f, x, basis, SDPsolver=MosekSolver(), nonneg=false)
     Mv = [-dot(differentiate(V, x),f); differentiate(V,x)];
     for ii=1:n; Mv = hcat(Mv, [differentiate(V,x)[ii];I[:,ii]]); end
 
-    if nonneg
+    # if nonneg
         # Generate the set for non-negative x
-        s = @set 0 ≤ x[1]
-        for ii=2:n
-            s = @set 0 ≤ x[ii] && s;
-        end
-        @constraint(m, V≥sum([ϵ[ii]*bnd[ii] for ii=1:b]), domain=s)
-        @constraint(m, Mv in PSDCone(), domain=s); # Mv positive definite
-    else
+        # s = @set 0 ≤ x[1]
+        # for ii=2:n
+        #     s = @set 0 ≤ x[ii] && s;
+        # end
+        # @constraint(m, V≥sum([ϵ[ii]*bnd[ii] for ii=1:b]), domain=s)
+        # @constraint(m, Mv in PSDCone(), domain=s); # Mv positive definite
+    # else
         @constraint m V ≥ sum([ϵ[ii]*bnd[ii] for ii=1:b])
         @SDconstraint m Mv ⪰ 0 # Mv positive definite
-    end
+    # end
 
     @objective m Max sum(ϵ)
     # TT = STDOUT; # save original STDOUT stream
@@ -216,15 +216,15 @@ function lyapunov(f, x, SDPsolver=MosekSolver(), o=2, nonneg=false)
     # Standard Lyapunov constraint
     P = dot(differentiate(V, x),f);
 
-    if nonneg
-        s = @set 0 ≤ x[1]
-        for ii=2:n
-            s = @set 0 ≤ x[ii] && s;
-        end
-        @constraint(m, P ≤ 0, domain=s)
-    else
+    # if nonneg
+        # s = @set 0 ≤ x[1]
+        # for ii=2:n
+        #     s = @set 0 ≤ x[ii] && s;
+        # end
+        # @constraint(m, P ≤ 0, domain=s)
+    # else
         @constraint m P ≤ 0;
-    end
+    # end
 
     status = solve(m)
     @show status
@@ -247,13 +247,14 @@ function minlyapunov(f,x,o=2)
     @variable m V Poly(monomials(x,0:o));
 
     # Make the semialgebraicset of non-negative x
-    s = @set 0 ≤ x[1]
-    for ii=2:n
-        s = @set 0 ≤ x[ii] && s;
-    end
+    # s = @set 0 ≤ x[1]
+    # for ii=2:n
+    #     s = @set 0 ≤ x[ii] && s;
+    # end
 
     # Positive definiteness constraint
-    @constraint(m, V ≥ ϵ*sum(x.^2), domain=s);
+    # @constraint(m, V ≥ ϵ*sum(x.^2), domain=s);
+    @constraint(m, V ≥ ϵ*sum(x.^2));
     @constraint m ϵ ≥ 0
 
     # Apply matrix constraint, ∇U⋅fᵥ ≤ 0.
