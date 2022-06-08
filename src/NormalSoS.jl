@@ -1,6 +1,6 @@
 module NormalSoS
 
-using SumOfSquares, JuMP, PolyJuMP, DynamicPolynomials, MultivariatePolynomials, Mosek
+using SumOfSquares, JuMP, PolyJuMP, DynamicPolynomials, MultivariatePolynomials, CSDP, LinearAlgebra, Statistics
 using Plots
 gr()
 export normdecomp
@@ -10,7 +10,7 @@ export normdecomp
 Performs a two stage optimisation to try and obtain a Lyapunov function
 satisfying the normal decomposition.
 """
-function normdecomp(f, x, SDPsolver=MosekSolver(), nIters=1, basis=:extended,
+function normdecomp(f, x, SDPsolver=CSDP.Optimizer, nIters=1, basis=:extended,
                     o=2, filter=true,
                     V::Union{DynamicPolynomials.Polynomial,Symbol}=:auto)
 
@@ -38,7 +38,7 @@ function normdecomp(f, x, SDPsolver=MosekSolver(), nIters=1, basis=:extended,
         # V = normopt1(f,x,Z,SDPsolver,o);
         V = normopt2(f,x,Z,SDPsolver);
     end
-    if any(isnan.(coefficients(V)))
+    if any(isnan.(MultivariatePolynomials.coefficients(V)))
         println("Optimisation failed, exiting.")
         return zeros(size(Z))'*Z
     end
@@ -48,7 +48,7 @@ function normdecomp(f, x, SDPsolver=MosekSolver(), nIters=1, basis=:extended,
 
         U = V;
 
-        m = SOSModel(solver=SDPsolver);
+        m = SOSModel(SDPsolver);
         @variable m ϵ
         @variable m α
         @variable m V Poly(Z)
@@ -59,7 +59,7 @@ function normdecomp(f, x, SDPsolver=MosekSolver(), nIters=1, basis=:extended,
         # Apply matrix constraint, ∇U⋅g ≤ 0.
         Mv = [-dot(differentiate(V, x),f); differentiate(V,x)];
         for ii=1:n; Mv = hcat(Mv, [differentiate(V,x)[ii];I[:,ii]]); end
-        @SDconstraint m Mv ⪰ 0 # Mv positive definite
+        @constraint(m,Mv in PSDCone()) # Mv positive definite
 
         # Wynn inequality constraint
         @constraint m dot(differentiate(V,x),f+2*differentiate(U,x)) ≥
@@ -69,11 +69,11 @@ function normdecomp(f, x, SDPsolver=MosekSolver(), nIters=1, basis=:extended,
         @constraint m ϵ ≥ 0
         @objective m Min α
 
-        status = solve(m);
-        V = getvalue(V);
+        status = optimize!(m);
+        V = value(V);
 
         # If V now contains any NaN, return U instead
-        if any(isnan.(coefficients(V)))
+        if any(isnan.(MultivariatePolynomials.coefficients(V)))
             return filterterms(U,filter)
         end
 
@@ -90,14 +90,14 @@ end
 
 """
 Obtains a Lyapunov function coming close to orthogonality. Uses a simple
-lower bounding polynomial and maximises a single coefficient.
+lower bounding polynomial and maximises a single MultivariatePolynomials.coefficient.
 """
-function normopt1(f, x, basis, SDPsolver=MosekSolver(), o=2)
+function normopt1(f, x, basis, SDPsolver=CSDP.Optimizer, o=2)
     # Single ϵ used for lower bound
 
     n = length(f);
 
-    m = SOSModel(solver=SDPsolver);
+    m = SOSModel(SDPsolver);
     @variable m ϵ
 
     @variable m V Poly(basis)
@@ -109,29 +109,29 @@ function normopt1(f, x, basis, SDPsolver=MosekSolver(), o=2)
     I = NormalSoS.eye(x);
     Mv = [-dot(differentiate(V, x),f); differentiate(V,x)];
     for ii=1:n; Mv = hcat(Mv, [differentiate(V,x)[ii];I[:,ii]]); end
-    @SDconstraint m Mv ⪰ 0 # Mv positive definite
+    @constraint(m,Mv in PSDCone()) # Mv positive definite
 
     @objective m Max ϵ
-    status = solve(m);
+    status = optimize!(m);
 
     @show status
     @show sum(x.^o)
-    @show getvalue(ϵ)
-    return getvalue(V)
+    @show value(ϵ)
+    return value(V)
 
 end
 
 
 """
 Obtains a Lyapunov function coming close to orthogonality. Computes a suitable
-lower bounding polynomial and maximises the sum of the coefficients.
+lower bounding polynomial and maximises the sum of the MultivariatePolynomials.coefficients.
 """
-function normopt2(f, x, basis, SDPsolver=MosekSolver(), nonneg=false)
+function normopt2(f, x, basis, SDPsolver=CSDP.Optimizer, nonneg=false)
     # Vector ϵ used for lower bound
 
     n = length(f);
 
-    m = SOSModel(solver=SDPsolver);
+    m = SOSModel(SDPsolver);
 
     @variable m V Poly(basis)
 
@@ -180,19 +180,19 @@ function normopt2(f, x, basis, SDPsolver=MosekSolver(), nonneg=false)
         # @constraint(m, Mv in PSDCone(), domain=s); # Mv positive definite
     # else
         @constraint m V ≥ sum([ϵ[ii]*bnd[ii] for ii=1:b])
-        @SDconstraint m Mv ⪰ 0 # Mv positive definite
+        @constraint(m,Mv in PSDCone()) # Mv positive definite
     # end
 
     @objective m Max sum(ϵ)
     # TT = STDOUT; # save original STDOUT stream
     # redirect_stdout();
-    status = solve(m);
+    status = optimize!(m);
     # redirect_stdout(TT);
 
     @show status
     @show bnd
-    @show getvalue(ϵ)
-    return getvalue(V)
+    @show value.(ϵ)
+    return value.(V)
 
 end
 
@@ -202,11 +202,11 @@ A basic function to obtain a Lyapunov function for ODE f. The function can
 optionally be applied only for positive x, e.g. for a system describing a
 chemical reaction network.
 """
-function lyapunov(f, x, SDPsolver=MosekSolver(), o=2, nonneg=false)
+function lyapunov(f, x, SDPsolver=CSDP.Optimizer, o=2, nonneg=false)
 
     n = length(f);
 
-    m = SOSModel(solver=SDPsolver);
+    m = SOSModel(SDPsolver);
     # @variable m ϵ
     @variable m V Poly(monomials(x,0:o));
 
@@ -226,10 +226,10 @@ function lyapunov(f, x, SDPsolver=MosekSolver(), o=2, nonneg=false)
         @constraint m P ≤ 0;
     # end
 
-    status = solve(m)
+    status = optimize!(m)
     @show status
-    # @show getvalue(ϵ)
-    return getvalue(V)
+    # @show value(ϵ)
+    return value(V)
 
 end
 
@@ -242,7 +242,7 @@ function minlyapunov(f,x,o=2)
 
     n = length(x);
 
-    m = SOSModel(solver=CSDPSolver());
+    m = SOSModel(CSDPSolver());
     @variable m ϵ
     @variable m V Poly(monomials(x,0:o));
 
@@ -264,10 +264,10 @@ function minlyapunov(f,x,o=2)
 
     @constraint(m, Mv in PSDCone(), domain=s); # Mv positive definite
 
-    status = solve(m);
+    status = optimize!(m);
     @show(status)
 
-    return getvalue(V)
+    return value(V)
 
 end
 
@@ -281,9 +281,9 @@ function minimalbasis(f,x)
 
     # Loop over the elements of f
     for (i,fi) in enumerate(f)
-        fTmp = [];
+        fTmp = 0;
         for elem in fi
-            fTmp += coefficient(elem)*elem;
+            fTmp += MultivariatePolynomials.coefficient(elem)*elem;
         end
         basis = basis + fTmp*x[i];
     end
@@ -371,7 +371,7 @@ function upperbound(f, x, linear=true, niters=2)
     # Begin iterative loop
     for ii=1:niters
 
-        m = SOSModel(solver=MosekSolver());
+        m = SOSModel(CSDP.Optimizer);
         @variable m W Poly(Z)
 
         @variable m ϵ[1:n];
@@ -383,11 +383,11 @@ function upperbound(f, x, linear=true, niters=2)
         @constraint m -c(V,W) ≥ 0
 
         @objective m Max sum(ϵ)
-        status = solve(m);
+        status = optimize!(m);
         @show(status)
 
         # Set new V₀ as the optimization output
-        V = getvalue(W)
+        V = value(W)
 
     end
 
@@ -404,7 +404,7 @@ function initialguess(f, x, linear=true)
     if linear
         println("Obtaining initial guess under condition of linearity.")
 
-        m = SOSModel(solver=MosekSolver());
+        m = SOSModel(CSDP.Optimizer);
         # @variable m α
         @variable m β
         α = 1.0e0;
@@ -416,11 +416,11 @@ function initialguess(f, x, linear=true)
         # @constraint m α ≥ 0
 
         @objective m Min β
-        status = solve(m);
+        status = optimize!(m);
         @show(status)
 
-        # @show getvalue(α)
-        return getvalue(β)*sum(x.^2)
+        # @show value(α)
+        return value(β)*sum(x.^2)
 
     else
         println("Initial program for nonlinear case.")
@@ -431,7 +431,7 @@ function initialguess(f, x, linear=true)
         @show(u)
         Z = extendedbasis(f,x);
 
-        m = SOSModel(solver=MosekSolver());
+        m = SOSModel(CSDP.Optimizer);
         @variable m V Poly(Z)
         @variable m ϵ[1:n];
 
@@ -439,10 +439,10 @@ function initialguess(f, x, linear=true)
         M = [-dot(differentiate(V,x),f+2*u) - sum([ϵ[ii]*x[ii]^2 for ii=1:n]);
               u];
         for ii=1:n; M = hcat(Mv, [u[ii]; I[:,ii]]); end
-        @SDconstraint m M ⪰ 0
+        @constraint(m,M in PSDCone())
 
         @objective m Min sum(ϵ)
-        status = solve(m);
+        status = optimize!(m);
         @show(status);
 
         return
@@ -531,20 +531,20 @@ function checknorm(f, U, x)
     ∇U = differentiate(U,x);
     res = dot(∇U,f) + dot(∇U,∇U);
 
-    return mean(abs.(coefficients(res))) /
-            mean([mean(abs.(coefficients(f[ii]))) for ii=1:length(x)]);
+    return mean(abs.(MultivariatePolynomials.coefficients(res))) /
+            mean([mean(abs.(MultivariatePolynomials.coefficients(f[ii]))) for ii=1:length(x)]);
 end
 
 
 """
-Function to remove terms with very small coefficients
+Function to remove terms with very small MultivariatePolynomials.coefficients
 """
 function filterterms(U, filter=true, tol=1e-4)
 
     if filter
         U2 = 1;
 
-        idxs = abs.(coefficients(U)).>tol;
+        idxs = abs.(MultivariatePolynomials.coefficients(U)).>tol;
         for (ii,trm) in enumerate(U)
             if idxs[ii]
                 U2 += trm;
